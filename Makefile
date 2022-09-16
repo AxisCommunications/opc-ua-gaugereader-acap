@@ -1,6 +1,3 @@
-# Copyright (C) 2022, Axis Communications AB, Lund, Sweden
-# SPDX-License-Identifier: Apache-2.0
-
 TARGET = opcuagaugereader
 OBJECTS = $(wildcard *.cpp)
 RM ?= rm
