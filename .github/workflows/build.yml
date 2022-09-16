@@ -1,7 +1,10 @@
 ---
 name: Build ACAPs
 
-on: [push, pull_request]
+on:
+  pull_request:
+    types: [opened, reopened]
+  push:
 
 jobs:
   build:
