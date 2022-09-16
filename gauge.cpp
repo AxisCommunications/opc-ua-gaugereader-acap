@@ -18,7 +18,6 @@
 #include <cmath>
 #include <iostream>
 #include <map>
-//#include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 
 #include "common.h"
@@ -26,6 +25,14 @@
 
 using namespace cv;
 using namespace std;
+
+// Use DEBUG_WRITE to write images to storage for debugging
+#if defined(DEBUG_WRITE)
+#include <opencv2/imgcodecs.hpp>
+#define DBG_WRITE_IMG(filename, img) imwrite(filename, img);
+#else
+#define DBG_WRITE_IMG(filename, img)
+#endif
 
 Gauge::Gauge(
     const Mat &img,
@@ -74,15 +81,15 @@ Gauge::Gauge(
     this->point_center = point_center - offset;
     this->point_max = point_max - offset;
     Mat cropped_img = img(croprange_y, croprange_x);
-    // imwrite("cropped_img_c++.jpg", cropped_img);
+    DBG_WRITE_IMG("cropped_img.jpg", cropped_img);
 
     // Create gauge masks
     CreateMask(cropped_img, big_mask, big_radii);
     CreateMask(cropped_img, small_mask, small_radii);
     bitwise_xor(big_mask, small_mask, global_mask);
-    // imwrite("mask_0_big_c++.png", big_mask);
-    // imwrite("mask_1_small_c++.png", small_mask);
-    // imwrite("mask_2_global_c++.png", global_mask);
+    DBG_WRITE_IMG("mask_0_big.png", big_mask);
+    DBG_WRITE_IMG("mask_1_small.png", small_mask);
+    DBG_WRITE_IMG("mask_2_global.png", global_mask);
 
     LOG_I("%s/%s: img size: (%u, %u)", __FILE__, __FUNCTION__, img_size.width, img_size.height);
 }
@@ -103,29 +110,25 @@ double Gauge::ComputeGaugeValue(const Mat &img) const
     // Crop
     mat_a = img(croprange_y, croprange_x);
 
-    // Convert to grayscale
-    // cvtColor(mat_b, mat_a, COLOR_BGR2GRAY);
-    // imwrite("compute_gauge_value_0_gray_c++.jpg", mat_a);
-
     // Always do dark check for handling shifting light conditions over time
     if (IsDark(mat_a, big_mask))
     {
         // Invert
         InvertImg(mat_a);
     }
-    // imwrite("compute_gauge_value_1_gray_after_dark_c++.jpg", mat_a);
+    DBG_WRITE_IMG("compute_gauge_value_0_gray_after_dark.jpg", mat_a);
 
     // Prepare image for contour detection
     GaussianBlur(mat_a, mat_b, Size(5, 5), 0);
-    // imwrite("compute_gauge_value_2_mat_a_mat_b_c++.jpg", mat_b);
+    DBG_WRITE_IMG("compute_gauge_value_1_gaussian_blur.jpg", mat_b);
     adaptiveThreshold(mat_b, mat_a, 255, ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 11, 2);
     InvertImg(mat_a);
-    // imwrite("compute_gauge_value_3_mat_a_c++.jpg", mat_a);
+    DBG_WRITE_IMG("compute_gauge_value_2_invert.jpg", mat_a);
     Mat kernel(2, 2, CV_8U, 1);
     morphologyEx(mat_a, mat_b, MORPH_CLOSE, kernel);
-    // imwrite("compute_gauge_value_4_mat_b_c++.jpg", mat_b);
+    DBG_WRITE_IMG("compute_gauge_value_3_morphology_ex.jpg", mat_b);
     bitwise_and(mat_b, global_mask, mat_a);
-    // imwrite("compute_gauge_value_5_mat_a_c++.jpg", mat_a);
+    DBG_WRITE_IMG("compute_gauge_value_4_bitwise_and.jpg", mat_a);
 
     Point pointer_edge;
     if (!ContourEdgePoint(mat_a, pointer_edge))
@@ -243,20 +246,20 @@ bool Gauge::ContourEdgePoint(const Mat &img, Point &edge_point) const
     Mat small_circle_mask = Mat::zeros(img.size(), CV_8U);
     circle(big_circle_mask, point_center, big_radii, Scalar(255), 2);
     circle(small_circle_mask, point_center, small_radii, Scalar(255), 2);
-    // imwrite("contour_edge_point_1_big_circle_mask_c++.jpg", big_circle_mask);
-    // imwrite("contour_edge_point_2_small_circle_mask_c++.jpg", small_circle_mask);
+    DBG_WRITE_IMG("contour_edge_point_0_big_circle_mask.jpg", big_circle_mask);
+    DBG_WRITE_IMG("contour_edge_point_1_small_circle_mask.jpg", small_circle_mask);
     for (unsigned int i = 0; i < cnts.size(); i++)
     {
         Mat object_mask = Mat::zeros(img.size(), CV_8U);
         drawContours(object_mask, cnts, i, Scalar(255), 2);
-        // imwrite("contour_edge_point_3_object_mask_c++.jpg", object_mask);
+        DBG_WRITE_IMG("contour_edge_point_2_object_mask.jpg", object_mask);
         Mat big_object_mask;
         bitwise_and(object_mask, big_circle_mask, big_object_mask);
         Mat small_object_mask;
         bitwise_and(object_mask, small_circle_mask, small_object_mask);
         // No further action if there is no content
-        // imwrite("contour_edge_point_4_big_object_mask_c++.jpg", big_object_mask);
-        // imwrite("contour_edge_point_5_small_object_mask_c++.jpg", small_object_mask);
+        DBG_WRITE_IMG("contour_edge_point_3_big_object_mask.jpg", big_object_mask);
+        DBG_WRITE_IMG("contour_edge_point_4_small_object_mask.jpg", small_object_mask);
         if (0 < sum(big_object_mask)[0] && 0 < sum(small_object_mask)[0])
         {
             // evaluate every contour distance to center point and return
