@@ -1,0 +1,124 @@
+ARG ARCH=armv7hf
+ARG ACAP_SDK_VERSION=3.5
+ARG SDK_IMAGE=axisecp/acap-sdk
+ARG BUILD_DIR=/opt/build
+ARG ACAP_BUILD_DIR="$BUILD_DIR"/app
+
+FROM $SDK_IMAGE:$ACAP_SDK_VERSION-$ARCH-ubuntu20.04 AS builder
+
+# Set general arguments
+ARG ARCH
+ARG ACAP_BUILD_DIR
+ARG BUILD_DIR
+ARG OPEN62541_VERSION=1.2.5
+ARG OPENCV_VERSION=4.5.5
+
+# Install build dependencies for cross compiling OpenCV
+RUN DEBIAN_FRONTEND=noninteractive \
+    apt-get update && apt-get install -y -f --no-install-recommends \
+    cmake
+
+# OpenCV
+ARG OPENCV_DIR="$BUILD_DIR"/opencv
+ARG OPENCV_SRC_DIR="$OPENCV_DIR"/opencv-$OPENCV_VERSION
+ARG OPENCV_BUILD_DIR="$OPENCV_DIR"/build
+
+WORKDIR "$OPENCV_DIR"
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+RUN curl -L https://github.com/opencv/opencv/archive/$OPENCV_VERSION.tar.gz | tar xz
+
+WORKDIR "$OPENCV_BUILD_DIR"
+ENV COMMON_CMAKE_FLAGS="-S $OPENCV_SRC_DIR \
+        -B $OPENCV_BUILD_DIR \
+        -D CMAKE_BUILD_TYPE=RELEASE \
+        -D WITH_OPENEXR=OFF \
+        -D WITH_GTK=OFF \
+        -D WITH_V4L=OFF \
+        -D WITH_FFMPEG=OFF \
+        -D WITH_GSTREAMER=OFF \
+        -D WITH_GSTREAMER_0_10=OFF \
+        -D BUILD_LIST=core,imgproc,video \
+        -D BUILD_EXAMPLES=OFF \
+        -D BUILD_OPENCV_APPS=OFF \
+        -D BUILD_DOCS=OFF \
+        -D BUILD_JPEG=ON \
+        -D BUILD_PNG=OFF \
+        -D WITH_JASPER=OFF \
+        -D BUILD_PROTOBUF=OFF \
+        -D OPENCV_GENERATE_PKGCONFIG=ON "
+
+# hadolint ignore=SC2086
+RUN case "$ARCH" in \
+      armv7hf) \
+        # Source SDK environment to get cross compilation tools
+        . /opt/axis/acapsdk/environment-setup* && \
+        # Configure build with CMake
+        cmake \
+        -D CMAKE_CXX_COMPILER=${TARGET_PREFIX}g++ \
+        -D CMAKE_CXX_FLAGS="${CXX#*-g++}" \
+        -D CMAKE_C_COMPILER=${TARGET_PREFIX}gcc \
+        -D CMAKE_C_FLAGS="${CC#*-gcc}" \
+        -D CMAKE_TOOLCHAIN_FILE=${OPENCV_SRC_DIR}/platforms/linux/arm-gnueabi.toolchain.cmake \
+        -D CPU_BASELINE=NEON,VFPV3 \
+        -D ENABLE_NEON=ON \
+        -D ENABLE_VFPV3=ON \
+	-D CMAKE_INSTALL_PREFIX="$SDKTARGETSYSROOT"/usr \
+        $COMMON_CMAKE_FLAGS && \
+        # Build and install OpenCV
+        make -j "$(nproc)" install ; \
+	;; \
+      aarch64) \
+        # Source SDK environment to get cross compilation tools
+        . /opt/axis/acapsdk/environment-setup* && \
+        # Configure build with CMake
+        # No need to set NEON and VFP for aarch64 since they are implicitly
+        # present in an any standard armv8-a implementation.
+        cmake \
+        -D CMAKE_CXX_COMPILER=${TARGET_PREFIX}g++ \
+        -D CMAKE_CXX_FLAGS="${CXX#*-g++}" \
+        -D CMAKE_C_COMPILER=${TARGET_PREFIX}gcc \
+        -D CMAKE_C_FLAGS="${CC#*-gcc}" \
+        -D CMAKE_TOOLCHAIN_FILE="$OPENCV_SRC_DIR"/platforms/linux/aarch64-gnu.toolchain.cmake \
+	-D CMAKE_INSTALL_PREFIX="$SDKTARGETSYSROOT"/usr \
+        $COMMON_CMAKE_FLAGS && \
+        # Build and install OpenCV
+        make -j "$(nproc)" install ; \
+	;; \
+      *) \
+        printf "Error: '%s' is not a valid value for the ARCH variable\n", "$ARCH"; \
+        exit 1; \
+	;; \
+    esac
+
+# open62541
+ARG OPEN62541_DIR="$BUILD_DIR"/open62541
+ARG OPEN62541_SRC_DIR="$OPEN62541_DIR"/open62541-$OPEN62541_VERSION
+ARG OPEN62541_BUILD_DIR="$OPEN62541_DIR"/build
+
+WORKDIR "$OPEN62541_DIR"
+SHELL ["/bin/bash", "-o", "pipefail", "-c"]
+RUN curl -L https://github.com/open62541/open62541/archive/refs/tags/v$OPEN62541_VERSION.tar.gz | tar xz
+WORKDIR "$OPEN62541_BUILD_DIR"
+RUN . /opt/axis/acapsdk/environment-setup* && \
+    cmake -DCMAKE_INSTALL_PREFIX="$SDKTARGETSYSROOT"/usr -DBUILD_SHARED_LIBS=ON -DUA_ENABLE_NODEMANAGEMENT=ON "$OPEN62541_SRC_DIR"
+RUN make -j install
+
+# Copy the built library files to application directory
+ARG ACAP_LIB_DIR="$ACAP_BUILD_DIR"/lib
+WORKDIR "$ACAP_LIB_DIR"
+RUN cp -P "$OPENCV_BUILD_DIR"/lib/lib*.so* "$OPEN62541_BUILD_DIR"/bin/lib* ./
+
+# Build ACAP
+WORKDIR "$ACAP_BUILD_DIR"
+COPY LICENSE \
+     Makefile \
+     *.cpp \
+     *.h \
+     manifest.json \
+     ./
+COPY html/ ./html/
+RUN . /opt/axis/acapsdk/environment-setup* && acap-build .
+
+FROM scratch
+ARG ACAP_BUILD_DIR
+COPY --from=builder "$ACAP_BUILD_DIR"/*eap "$ACAP_BUILD_DIR"/*LICENSE.txt /

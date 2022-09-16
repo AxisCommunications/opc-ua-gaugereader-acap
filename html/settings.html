@@ -1,0 +1,39 @@
+<!DOCTYPE HTML>
+<html lang="en">
+<head>
+<style>
+	* {
+		font-family: OpenSans, Arial, sans-serif;
+	}
+	body {
+		height: 100%;
+		background: linear-gradient(135deg, #ffffff 35%, #ffcc33 10%);
+		background-attachment: fixed;
+	}
+	h1 {
+		color: #9a8b7d;
+	}
+</style>
+<title>Gauge Reader Settings</title>
+</head>
+
+<body>
+	<div style="float: left; margin-right: 20px;">
+		<img alt="" src="/camera/img/logo.png"/>
+	</div>
+	<h1>Gauge Reader Settings</h1>
+	<div style="position:relative">
+	<img id="preview" alt="" src=""/>
+	<canvas id="draw" alt="" style="position: absolute; top: 0px; left: 0px; border: none;"></canvas>
+	</div>
+
+	<div id="example">
+		<p id="info">Information text.</p>
+		<p id="values" style="font-style: italic;">x: , y:</p>
+	</div>
+
+	<script src="js/jquery-3.6.1.min.js"></script>
+	<script src="js/opcuagaugereader.js"></script>
+</body>
+</html>
+
