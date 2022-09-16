@@ -10,7 +10,13 @@ LDLIBS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs $(PKGS))
 
 CXXFLAGS += -I$(SDKTARGETSYSROOT)/usr/include/opencv4
 LDFLAGS = -L./lib -Wl,--no-as-needed,-rpath,'$$ORIGIN/lib'
-LDLIBS += -lm -lopencv_video -lopencv_imgproc -lopencv_core -lpthread
+LDLIBS += -lm -lopencv_core -lopencv_imgproc -lopencv_video -lpthread
+
+# Set DEBUG_WRITE to write debug images to storage
+ifneq ($(DEBUG_WRITE),)
+CXXFLAGS += -DDEBUG_WRITE
+LDLIBS += -lopencv_imgcodecs
+endif
 
 .PHONY: all %.eap dockerbuild clean
 

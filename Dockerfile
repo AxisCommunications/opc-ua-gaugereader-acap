@@ -31,20 +31,20 @@ WORKDIR "$OPENCV_BUILD_DIR"
 ENV COMMON_CMAKE_FLAGS="-S $OPENCV_SRC_DIR \
         -B $OPENCV_BUILD_DIR \
         -D CMAKE_BUILD_TYPE=RELEASE \
-        -D WITH_OPENEXR=OFF \
-        -D WITH_GTK=OFF \
-        -D WITH_V4L=OFF \
-        -D WITH_FFMPEG=OFF \
-        -D WITH_GSTREAMER=OFF \
-        -D WITH_GSTREAMER_0_10=OFF \
-        -D BUILD_LIST=core,imgproc,video \
-        -D BUILD_EXAMPLES=OFF \
-        -D BUILD_OPENCV_APPS=OFF \
         -D BUILD_DOCS=OFF \
+        -D BUILD_EXAMPLES=OFF \
         -D BUILD_JPEG=ON \
+        -D BUILD_LIST=core,imgproc,video,imgcodecs \
+        -D BUILD_OPENCV_APPS=OFF \
         -D BUILD_PNG=OFF \
-        -D WITH_JASPER=OFF \
         -D BUILD_PROTOBUF=OFF \
+        -D WITH_FFMPEG=OFF \
+        -D WITH_GSTREAMER_0_10=OFF \
+        -D WITH_GSTREAMER=OFF \
+        -D WITH_GTK=OFF \
+        -D WITH_JASPER=OFF \
+        -D WITH_OPENEXR=OFF \
+        -D WITH_V4L=OFF \
         -D OPENCV_GENERATE_PKGCONFIG=ON "
 
 # hadolint ignore=SC2086
