@@ -12,6 +12,8 @@ reads an analogue gauge using video analytics and exposes the value through an
 
 The exposed value is in percent.
 
+![Image of a water level gauge](images/water_level_gauge.jpg)
+
 ## Build
 
 ### On developer computer with ACAP SDK installed
