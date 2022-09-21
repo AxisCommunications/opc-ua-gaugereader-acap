@@ -17,7 +17,7 @@ Start by [forking the repository](https://docs.github.com/en/github/getting-star
 ### Clone it
 
 ```sh
-git clone https://github.com/<your username>/opc-ua-server-acap.git
+git clone https://github.com/<your username>/opc-ua-gaugereader-acap.git
 ```
 
 ### Create your feature branch

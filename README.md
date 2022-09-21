@@ -5,7 +5,7 @@
 [![Build ACAPs](https://github.com/AxisCommunications/opc-ua-gaugereader-acap/actions/workflows/build.yml/badge.svg)](https://github.com/AxisCommunications/opc-ua-gaugereader-acap/actions/workflows/build.yml)
 [![GitHub Super-Linter](https://github.com/AxisCommunications/opc-ua-gaugereader-acap/actions/workflows/super-linter.yml/badge.svg)](https://github.com/AxisCommunications/opc-ua-gaugereader-acap/actions/workflows/super-linter.yml)
 
-This directory contains the source code to build a small ACAP application that
+This repository contains the source code to build a small ACAP application that
 reads an analogue gauge using video analytics and exposes the value through an
 [OPC UA](https://en.wikipedia.org/wiki/OPC_Unified_Architecture)
 ([open62541](https://open62541.org/)) server.
@@ -14,7 +14,7 @@ The exposed value is in percent.
 
 ## Build
 
-### On host with ACAP SDK installed
+### On developer computer with ACAP SDK installed
 
 ```sh
 # With the environment initialized, use:
@@ -47,7 +47,7 @@ DOCKER_BUILDKIT=1 docker build --build-arg ARCH=aarch64 -o type=local,dest=. .
 
 ## Setup
 
-### Humans
+### Manual installation and configuration
 
 Open the ACAP's settings page in the web interface. Simply click in the image
 to set up the calibration points in the following order:
@@ -62,12 +62,19 @@ this that can be set to `False` for counterclockwise gauges.*
 The OPC UA server port is set, just like the clockwise/counterclockwise, as any
 regular ACAP parameters. (And the calibration points can be set that way too.)
 
-### Machines
+### Scripted installation and configuration
 
 Use the device's
 [param.cgi](https://www.axis.com/vapix-library/subjects/t10175981/section/t10036014/display)
 to set the center/min/max points, as well as clockwise/counterclockwise and the
 OPC UA server port number.
+
+## Usage
+
+Attach an OPC UA client to the port set in the ACAP. The client will then be
+able to read the value (and its timestamp) from the ACAP's OPC UA server.
+
+The ACAP will also log the gauge value in the camera's syslog.
 
 ## License
 
