@@ -4,7 +4,7 @@
         "setup": {
             "friendlyName": "OPC UA Gauge Reader",
             "appName": "opcuagaugereader",
-            "vendor": "Axis Communications",
+            "vendor": "Axis Communications AB",
             "embeddedSdkVersion": "3.0",
             "user": {
                 "group": "sdk",
