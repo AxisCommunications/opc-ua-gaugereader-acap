@@ -25,16 +25,11 @@ ready for production.*
 
 ## Build
 
-### On developer computer with ACAP SDK installed
+The build process uses the
+[ACAP SDK build container](https://hub.docker.com/r/axisecp/acap-sdk)
+and Docker.
 
-```sh
-# With the environment initialized, use:
-acap-build .
-```
-
-### Using ACAP SDK build container and Docker
-
-The handling of this is integrated in the [Makefile](Makefile), so if you have
+The Docker commands are integrated in the [Makefile](Makefile), so if you have
 Docker and `make` on your computer all you need to do is:
 
 ```sh

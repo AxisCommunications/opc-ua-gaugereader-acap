@@ -100,7 +100,12 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN curl -L https://github.com/open62541/open62541/archive/refs/tags/v$OPEN62541_VERSION.tar.gz | tar xz
 WORKDIR "$OPEN62541_BUILD_DIR"
 RUN . /opt/axis/acapsdk/environment-setup* && \
-    cmake -DCMAKE_INSTALL_PREFIX="$SDKTARGETSYSROOT"/usr -DBUILD_SHARED_LIBS=ON -DUA_ENABLE_NODEMANAGEMENT=ON "$OPEN62541_SRC_DIR"
+    cmake -j \
+    -DCMAKE_INSTALL_PREFIX="$SDKTARGETSYSROOT"/usr \
+    -DBUILD_BUILD_EXAMPLES=OFF \
+    -DBUILD_SHARED_LIBS=ON \
+    -DUA_ENABLE_NODEMANAGEMENT=ON \
+    "$OPEN62541_SRC_DIR"
 RUN make -j install
 
 # Copy the built library files to application directory
