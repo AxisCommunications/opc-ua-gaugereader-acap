@@ -16,6 +16,7 @@ LDLIBS += -lm -lopencv_core -lopencv_imgproc -lopencv_video -lpthread
 ifneq ($(DEBUG_WRITE),)
 CXXFLAGS += -DDEBUG_WRITE
 LDLIBS += -lopencv_imgcodecs
+DOCKER_ARGS += --build-arg DEBUG_WRITE=$(DEBUG_WRITE)
 endif
 
 .PHONY: all %.eap dockerbuild clean
@@ -28,7 +29,7 @@ $(TARGET): $(OBJECTS)
 
 # docker build container targets
 %.eap:
-	DOCKER_BUILDKIT=1 docker build --build-arg ARCH=$(@:.eap=) -o type=local,dest=. "$(CURDIR)"
+	DOCKER_BUILDKIT=1 docker build $(DOCKER_ARGS) --build-arg ARCH=$(@:.eap=) -o type=local,dest=. "$(CURDIR)"
 
 dockerbuild: armv7hf.eap aarch64.eap
 

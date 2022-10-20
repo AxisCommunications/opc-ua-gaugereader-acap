@@ -11,11 +11,15 @@ jobs:
     runs-on: ubuntu-latest
     env:
       DEBIAN_FRONTEND: noninteractive
+    strategy:
+      matrix:
+        # Build both normal version and debug version
+        debug_write: ["", "debug"]
     steps:
       - uses: actions/checkout@v3
       # Test all Makefile targets and make sure the ACAP files are created
       - name: Build ACAPs
-        run: make -j dockerbuild
+        run: DEBUG_WRITE=${{ matrix.debug_write }} make -j dockerbuild
       - name: Verify ACAPs
         run: |
           for a in armv7hf aarch64; do

@@ -1,6 +1,7 @@
 ARG ARCH=armv7hf
 ARG ACAP_SDK_VERSION=3.5
 ARG SDK_IMAGE=axisecp/acap-sdk
+ARG DEBUG_WRITE
 ARG BUILD_DIR=/opt/build
 ARG ACAP_BUILD_DIR="$BUILD_DIR"/app
 ARG OPEN62541_VERSION=1.2.5
@@ -14,6 +15,8 @@ ARG ACAP_BUILD_DIR
 ARG BUILD_DIR
 ARG OPEN62541_VERSION
 ARG OPENCV_VERSION
+ARG DEBUG_WRITE
+ENV DEBUG_WRITE=$DEBUG_WRITE
 
 # Install additional build dependencies
 RUN DEBIAN_FRONTEND=noninteractive \
@@ -36,7 +39,7 @@ ENV COMMON_CMAKE_FLAGS="-S $OPENCV_SRC_DIR \
         -D BUILD_DOCS=OFF \
         -D BUILD_EXAMPLES=OFF \
         -D BUILD_JPEG=ON \
-        -D BUILD_LIST=core,imgproc,video,imgcodecs \
+        -D BUILD_LIST=core,video,imgproc${DEBUG_WRITE:+,imgcodecs} \
         -D BUILD_OPENCV_APPS=OFF \
         -D BUILD_PNG=OFF \
         -D BUILD_PROTOBUF=OFF \
