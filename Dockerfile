@@ -117,11 +117,11 @@ RUN cp -P "$OPENCV_BUILD_DIR"/lib/lib*.so* "$OPEN62541_BUILD_DIR"/bin/lib* ./
 WORKDIR "$ACAP_BUILD_DIR"
 COPY LICENSE \
      Makefile \
-     *.cpp \
-     *.h \
      manifest.json \
      ./
 COPY html/ ./html/
+COPY include/ ./include/
+COPY src/ ./src/
 RUN . /opt/axis/acapsdk/environment-setup* && acap-build .
 
 FROM scratch
