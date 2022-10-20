@@ -111,7 +111,7 @@ RUN . /opt/axis/acapsdk/environment-setup* && \
 RUN make -j install
 
 # Copy the built library files to application directory
-WORKDIR "$ACAP_LIB_DIR"/lib
+WORKDIR "$ACAP_BUILD_DIR"/lib
 RUN cp -P "$OPENCV_BUILD_DIR"/lib/lib*.so* "$OPEN62541_BUILD_DIR"/bin/lib* ./
 
 # Build ACAP
