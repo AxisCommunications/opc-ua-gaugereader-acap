@@ -22,8 +22,8 @@
 #include <errno.h>
 #include <vdo-channel.h>
 
-#include "common.h"
-#include "imgprovider.h"
+#include "common.hpp"
+#include "imgprovider.hpp"
 #include "vdo-map.h"
 
 #define VDO_CHANNEL (1)

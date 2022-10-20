@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-#include "opcua_server.h"
-#include "common.h"
+#include "opcuaserver.hpp"
+#include "common.hpp"
 
 using namespace std;
 
