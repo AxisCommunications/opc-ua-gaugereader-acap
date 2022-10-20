@@ -3,6 +3,8 @@ ARG ACAP_SDK_VERSION=3.5
 ARG SDK_IMAGE=axisecp/acap-sdk
 ARG BUILD_DIR=/opt/build
 ARG ACAP_BUILD_DIR="$BUILD_DIR"/app
+ARG OPEN62541_VERSION=1.2.5
+ARG OPENCV_VERSION=4.5.5
 
 FROM $SDK_IMAGE:$ACAP_SDK_VERSION-$ARCH-ubuntu20.04 AS builder
 
@@ -10,10 +12,10 @@ FROM $SDK_IMAGE:$ACAP_SDK_VERSION-$ARCH-ubuntu20.04 AS builder
 ARG ARCH
 ARG ACAP_BUILD_DIR
 ARG BUILD_DIR
-ARG OPEN62541_VERSION=1.2.5
-ARG OPENCV_VERSION=4.5.5
+ARG OPEN62541_VERSION
+ARG OPENCV_VERSION
 
-# Install build dependencies for cross compiling OpenCV
+# Install additional build dependencies
 RUN DEBIAN_FRONTEND=noninteractive \
     apt-get update && apt-get install -y -f --no-install-recommends \
     cmake
@@ -109,8 +111,7 @@ RUN . /opt/axis/acapsdk/environment-setup* && \
 RUN make -j install
 
 # Copy the built library files to application directory
-ARG ACAP_LIB_DIR="$ACAP_BUILD_DIR"/lib
-WORKDIR "$ACAP_LIB_DIR"
+WORKDIR "$ACAP_LIB_DIR"/lib
 RUN cp -P "$OPENCV_BUILD_DIR"/lib/lib*.so* "$OPEN62541_BUILD_DIR"/bin/lib* ./
 
 # Build ACAP
@@ -119,9 +120,9 @@ COPY LICENSE \
      Makefile \
      manifest.json \
      ./
-COPY html/ ./html/
-COPY include/ ./include/
-COPY src/ ./src/
+COPY html/ ./html
+COPY include/ ./include
+COPY src/ ./src
 RUN . /opt/axis/acapsdk/environment-setup* && acap-build .
 
 FROM scratch
