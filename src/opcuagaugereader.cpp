@@ -23,10 +23,10 @@
 #include <string>
 #include <syslog.h>
 
-#include "common.h"
-#include "gauge.h"
-#include "imgprovider.h"
-#include "opcua_server.h"
+#include "common.hpp"
+#include "gauge.hpp"
+#include "imgprovider.hpp"
+#include "opcuaserver.hpp"
 
 using namespace cv;
 using namespace std;

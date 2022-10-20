@@ -20,8 +20,8 @@
 #include <map>
 #include <opencv2/imgproc.hpp>
 
-#include "common.h"
-#include "gauge.h"
+#include "common.hpp"
+#include "gauge.hpp"
 
 using namespace cv;
 using namespace std;
