@@ -29,7 +29,7 @@ $(TARGET): $(OBJECTS)
 
 # docker build container targets
 %.eap:
-	DOCKER_BUILDKIT=1 docker build $(DOCKER_ARGS) --build-arg ARCH=$(@:.eap=) -o type=local,dest=. "$(CURDIR)"
+	DOCKER_BUILDKIT=1 docker build $(DOCKER_ARGS) --build-arg ARCH=$(basename $@) -o type=local,dest=. "$(CURDIR)"
 
 dockerbuild: armv7hf.eap aarch64.eap
 
