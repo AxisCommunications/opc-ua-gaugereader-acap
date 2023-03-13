@@ -24,8 +24,8 @@ class Gauge
   public:
     Gauge(
         const cv::Mat &img,
-        const cv::Point &point_min,
         const cv::Point &point_center,
+        const cv::Point &point_min,
         const cv::Point &point_max,
         const bool clockwise = true);
     ~Gauge();
@@ -37,8 +37,8 @@ class Gauge
     cv::Mat global_mask;
     cv::Mat small_mask;
     cv::Point point_center;
-    cv::Point point_max;
     cv::Point point_min;
+    cv::Point point_max;
     cv::Range croprange_x;
     cv::Range croprange_y;
     cv::Size img_size;

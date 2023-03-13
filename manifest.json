@@ -12,7 +12,7 @@
             },
             "vendorUrl": "https://www.axis.com/",
             "runMode": "respawn",
-            "version": "1.0.1"
+            "version": "1.1.0"
         },
 	"configuration": {
 		"settingPage": "settings.html",
@@ -20,8 +20,8 @@
 			{"name": "clockwise", "type": "bool:0,1", "default": "1"},
 			{"name": "maxX", "type": "int:min=0;max=1023", "default": "150"},
 			{"name": "maxY", "type": "int:min=0;max=575", "default": "150"},
-			{"name": "midX", "type": "int:min=0;max=1023", "default": "100"},
-			{"name": "midY", "type": "int:min=0;max=575", "default": "170"},
+			{"name": "centerX", "type": "int:min=0;max=1023", "default": "100"},
+			{"name": "centerY", "type": "int:min=0;max=575", "default": "170"},
 			{"name": "minX", "type": "int:min=0;max=1023", "default": "50"},
 			{"name": "minY", "type": "int:min=0;max=575", "default": "150"},
 			{"name": "port", "type": "int:min=1", "default": "4840"}

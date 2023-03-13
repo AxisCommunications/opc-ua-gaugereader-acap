@@ -34,9 +34,9 @@ using namespace std;
 static mutex mtx;
 
 static bool clockwise;
-static Point max_point;
-static Point mid_point;
+static Point center_point;
 static Point min_point;
+static Point max_point;
 static Gauge *gauge = nullptr;
 static OpcUaServer opcuaserver;
 
@@ -96,21 +96,13 @@ static void update_local_param(const gchar &name, const uint32_t val)
     {
         clockwise = (1 == val);
     }
-    else if (0 == strncmp("maxX", &name, 4))
+    else if (0 == strncmp("centerX", &name, 4))
     {
-        max_point.x = val;
+        center_point.x = val;
     }
-    else if (0 == strncmp("maxY", &name, 4))
+    else if (0 == strncmp("centerY", &name, 4))
     {
-        max_point.y = val;
-    }
-    else if (0 == strncmp("midX", &name, 4))
-    {
-        mid_point.x = val;
-    }
-    else if (0 == strncmp("midY", &name, 4))
-    {
-        mid_point.y = val;
+        center_point.y = val;
     }
     else if (0 == strncmp("minX", &name, 4))
     {
@@ -119,6 +111,14 @@ static void update_local_param(const gchar &name, const uint32_t val)
     else if (0 == strncmp("minY", &name, 4))
     {
         min_point.y = val;
+    }
+    else if (0 == strncmp("maxX", &name, 4))
+    {
+        max_point.x = val;
+    }
+    else if (0 == strncmp("maxY", &name, 4))
+    {
+        max_point.y = val;
     }
     else
     {
@@ -209,7 +209,7 @@ static gboolean imageanalysis(gpointer data)
     if (nullptr == gauge)
     {
         LOG_I("%s/%s: Set up new gauge", __FILE__, __FUNCTION__);
-        gauge = new Gauge(gray_mat, min_point, mid_point, max_point, clockwise);
+        gauge = new Gauge(gray_mat, center_point, min_point, max_point, clockwise);
     }
     assert(nullptr != gauge);
     double value = gauge->ComputeGaugeValue(gray_mat);
@@ -302,21 +302,21 @@ int main(int argc, char *argv[])
     // clang-format off
     if (!setup_param(*axparameter, "clockwise", param_callback) ||
         !setup_param(*axparameter, "port", param_callback) ||
-        !setup_param(*axparameter, "maxX", param_callback) ||
-        !setup_param(*axparameter, "maxY", param_callback) ||
-	!setup_param(*axparameter, "midX", param_callback) ||
-        !setup_param(*axparameter, "midY", param_callback) ||
-	!setup_param(*axparameter, "minX", param_callback) ||
-        !setup_param(*axparameter, "minY", param_callback))
+	!setup_param(*axparameter, "centerX", param_callback) ||
+        !setup_param(*axparameter, "centerY", param_callback) ||
+        !setup_param(*axparameter, "minX", param_callback) ||
+        !setup_param(*axparameter, "minY", param_callback) ||
+	!setup_param(*axparameter, "maxX", param_callback) ||
+        !setup_param(*axparameter, "maxY", param_callback))
     // clang-format on
     {
         ax_parameter_free(axparameter);
         return EXIT_FAILURE;
     }
     // Log retrieved param values
-    LOG_I("%s/%s: max: (%u, %u)", __FILE__, __FUNCTION__, max_point.x, max_point.y);
-    LOG_I("%s/%s: mid: (%u, %u)", __FILE__, __FUNCTION__, mid_point.x, mid_point.y);
+    LOG_I("%s/%s: center: (%u, %u)", __FILE__, __FUNCTION__, center_point.x, center_point.y);
     LOG_I("%s/%s: min: (%u, %u)", __FILE__, __FUNCTION__, min_point.x, min_point.y);
+    LOG_I("%s/%s: max: (%u, %u)", __FILE__, __FUNCTION__, max_point.x, max_point.y);
 
     // Initialize image analysis
     if (!initimageanalysis())

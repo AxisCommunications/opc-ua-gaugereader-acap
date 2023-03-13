@@ -1,6 +1,6 @@
 TARGET = opcuagaugereader
 OBJECTS = $(wildcard $(CURDIR)/src/*.cpp)
-RM ?= rm
+RM ?= rm -f
 
 PKGS = gio-2.0 gio-unix-2.0 vdostream open62541 axparameter
 
@@ -34,4 +34,4 @@ $(TARGET): $(OBJECTS)
 dockerbuild: armv7hf.eap aarch64.eap
 
 clean:
-	$(RM) -f $(TARGET) *.eap* *_LICENSE.txt pa*.conf
+	$(RM) $(TARGET) *.eap* *_LICENSE.txt pa*.conf

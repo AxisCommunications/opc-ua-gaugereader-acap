@@ -36,8 +36,8 @@ using namespace std;
 
 Gauge::Gauge(
     const Mat &img,
-    const Point &point_min,
     const Point &point_center,
+    const Point &point_min,
     const Point &point_max,
     const bool clockwise)
     : clockwise(clockwise), img_size(img.size())
