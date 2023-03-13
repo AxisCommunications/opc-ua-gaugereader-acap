@@ -138,11 +138,11 @@ curl -k --anyauth -u root:<password> \
 will list the current settings:
 
 ```sh
+root.Opcuagaugereader.centerX=479
+root.Opcuagaugereader.centerY=355
 root.Opcuagaugereader.clockwise=1
 root.Opcuagaugereader.maxX=678
 root.Opcuagaugereader.maxY=165
-root.Opcuagaugereader.midX=479
-root.Opcuagaugereader.midY=355
 root.Opcuagaugereader.minX=283
 root.Opcuagaugereader.minY=167
 root.Opcuagaugereader.port=4840

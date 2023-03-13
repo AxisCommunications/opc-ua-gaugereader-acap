@@ -2,8 +2,8 @@ const w = 1024;
 const h = 576;
 const msize = 6;
 const State = {
-	Beg: Symbol(0),
-	Mid: Symbol(1),
+	Begin: Symbol(0),
+	Center: Symbol(1),
 	Min: Symbol(2),
 	Max: Symbol(3)
 }
@@ -11,45 +11,45 @@ const parambaseurl = '/axis-cgi/param.cgi?action=';
 const paramgeturl = parambaseurl + 'list&group=opcuagaugereader.';
 const paramseturl = parambaseurl + 'update&opcuagaugereader.';
 var points = {};
-points['maxX'] = 0;
-points['maxY'] = 0;
-points['midX'] = 0;
-points['midY'] = 0;
+points['centerX'] = 0;
+points['centerY'] = 0;
 points['minX'] = 0;
 points['minY'] = 0;
+points['maxX'] = 0;
+points['maxY'] = 0;
 
 function getPointText(param) {
 	return param + ': (' + points[param + 'X'] + ', ' + points[param + 'Y'] + ')';
 }
 
-function drawMarker(X, Y) {
+function drawMarker(X, Y, color) {
 	ctx.beginPath();
-	ctx.fillStyle = '#ffcc33';
+	ctx.fillStyle = color;
 	ctx.strokeStyle = 'white';
 	ctx.arc(X, Y, msize, 0, 2 * Math.PI, false);
 	ctx.fill();
 	ctx.arc(X, Y, msize, 1, 2 * Math.PI, false);
 	ctx.stroke();
 	document.getElementById("values").textContent =
-		getPointText('min') + ' ' + getPointText('mid') + ' ' + getPointText('max');
+		getPointText('center') + ' ' + getPointText('min') + ' ' + getPointText('max');
 }
 
-function drawMax() {
-	drawMarker(points['maxX'], points['maxY']);
-}
-
-function drawMid() {
-	drawMarker(points['midX'], points['midY']);
+function drawCenter() {
+	drawMarker(points['centerX'], points['centerY'], '#ff0033');
 }
 
 function drawMin() {
-	drawMarker(points['minX'], points['minY']);
+	drawMarker(points['minX'], points['minY'], '#ffcc33');
+}
+
+function drawMax() {
+	drawMarker(points['maxX'], points['maxY'], '#ffcc33');
 }
 
 function drawDefaultPoints() {
 	ctx.clearRect(0, 0, draw.width, draw.height);
 	drawMax();
-	drawMid();
+	drawCenter();
 	drawMin();
 }
 
@@ -77,21 +77,21 @@ function setParam(param, value) {
 }
 
 function initWithCurrentValues() {
-	getCurrentValue('midX');
-	getCurrentValue('midY');
-	getCurrentValue('maxX');
-	getCurrentValue('maxY');
+	getCurrentValue('centerX');
+	getCurrentValue('centerY');
 	getCurrentValue('minX');
 	getCurrentValue('minY');
+	getCurrentValue('maxX');
+	getCurrentValue('maxY');
 }
 
 function handleCoord(X, Y) {
 	switch (curState) {
-		case State.Mid:
-			setParam('midX', X);
-			setParam('midY', Y);
+		case State.Center:
+			setParam('centerX', X);
+			setParam('centerY', Y);
 			ctx.clearRect(0, 0, draw.width, draw.height);
-			drawMid();
+			drawCenter();
 			curState = State.Min;
 			infoTxt.innerHTML = 'Please mark gauge minimum point';
 			break;
@@ -107,8 +107,8 @@ function handleCoord(X, Y) {
 			setParam('maxY', Y);
 			drawMax();
 		default:
-			curState = State.Mid;
-			infoTxt.innerHTML = 'Please mark gauge middle point (starts new calibration)';
+			curState = State.Center;
+			infoTxt.innerHTML = 'Please mark gauge center point (starts new calibration)';
 			break;
 	}
 }
@@ -123,7 +123,7 @@ function handleMouseClick(event) {
 }
 
 document.addEventListener('click', handleMouseClick);
-var curState = State.Beg;
+var curState = State.Begin;
 var preview = document.getElementById('preview');
 var draw = document.getElementById('draw');
 var infoTxt = document.getElementById('info');
