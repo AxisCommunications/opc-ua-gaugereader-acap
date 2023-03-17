@@ -180,6 +180,7 @@ static gboolean setup_param(AXParameter &axparameter, const gchar *name, AXParam
     }
     update_local_param(*name, val);
     LOG_I("%s/%s: Set up parameter %s", __FILE__, __FUNCTION__, name);
+    usleep(50000); // mitigate timing issue in parameter handling
 
     return TRUE;
 }
