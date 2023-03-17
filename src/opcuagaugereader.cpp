@@ -96,11 +96,11 @@ static void update_local_param(const gchar &name, const uint32_t val)
     {
         clockwise = (1 == val);
     }
-    else if (0 == strncmp("centerX", &name, 4))
+    else if (0 == strncmp("centerX", &name, 7))
     {
         center_point.x = val;
     }
-    else if (0 == strncmp("centerY", &name, 4))
+    else if (0 == strncmp("centerY", &name, 7))
     {
         center_point.y = val;
     }
