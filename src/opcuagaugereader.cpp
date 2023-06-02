@@ -301,14 +301,14 @@ int main(int argc, char *argv[])
     }
     LOG_I("%s/%s: ax_parameter_new success", __FILE__, __FUNCTION__);
     // clang-format off
-    if (!setup_param(*axparameter, "clockwise", param_callback) ||
-        !setup_param(*axparameter, "port", param_callback) ||
-	!setup_param(*axparameter, "centerX", param_callback) ||
+    if (!setup_param(*axparameter, "centerX", param_callback) ||
         !setup_param(*axparameter, "centerY", param_callback) ||
+        !setup_param(*axparameter, "clockwise", param_callback) ||
+        !setup_param(*axparameter, "maxX", param_callback) ||
+        !setup_param(*axparameter, "maxY", param_callback) ||
         !setup_param(*axparameter, "minX", param_callback) ||
         !setup_param(*axparameter, "minY", param_callback) ||
-	!setup_param(*axparameter, "maxX", param_callback) ||
-        !setup_param(*axparameter, "maxY", param_callback))
+        !setup_param(*axparameter, "port", param_callback))
     // clang-format on
     {
         ax_parameter_free(axparameter);
