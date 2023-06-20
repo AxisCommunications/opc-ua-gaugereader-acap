@@ -61,7 +61,7 @@ function getCurrentValue(param) {
 			drawDefaultPoints();
 		})
 		.fail(function(data) {
-			alert('FAILED to set ' + param);
+			alert('FAILED to get ' + param);
 		});
 }
 
