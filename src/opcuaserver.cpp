@@ -35,6 +35,7 @@ bool OpcUaServer::LaunchServer(const unsigned int serverport)
     assert(nullptr == server);
     assert(nullptr == serverthread);
     assert(!running);
+    assert(1024 <= serverport && 65535 >= serverport);
 
     // Create an OPC UA server
     LOG_I("%s/%s: Create UA server serving on port %u", __FILE__, __FUNCTION__, serverport);
