@@ -23,12 +23,10 @@ using namespace std;
 
 OpcUaServer::OpcUaServer() : serverthread(nullptr), running(false), server(nullptr)
 {
-    LOG_I("%s/%s: Constructor", __FILE__, __FUNCTION__);
 }
 
 OpcUaServer::~OpcUaServer()
 {
-    LOG_I("%s/%s: Destructor", __FILE__, __FUNCTION__);
 }
 
 bool OpcUaServer::LaunchServer(const unsigned int serverport)
@@ -50,27 +48,27 @@ bool OpcUaServer::LaunchServer(const unsigned int serverport)
     AddDouble(LABEL, -1);
 
     serverthread = new thread(this->RunUaServer, this);
-    serverthread->detach();
 
     return true;
 }
 
 void OpcUaServer::ShutDownServer()
 {
-    assert(true == running);
+    assert(running);
     assert(nullptr != serverthread);
 
     LOG_I("%s/%s: Shutting down UA server ...", __FILE__, __FUNCTION__);
     running = false;
-    UA_Server_run_shutdown(server);
-    UA_Server_delete(server);
-    if (serverthread->joinable())
+    if (nullptr != serverthread)
     {
-        serverthread->join();
+        if (serverthread->joinable())
+        {
+            serverthread->join();
+        }
+        delete serverthread;
+        serverthread = nullptr;
     }
-    delete serverthread;
-    serverthread = nullptr;
-    server = nullptr;
+    assert(nullptr == server);
     LOG_I("%s/%s: UA server has been shut down", __FILE__, __FUNCTION__);
 }
 
@@ -142,5 +140,7 @@ void OpcUaServer::RunUaServer(OpcUaServer *parent)
     parent->running = true;
     UA_StatusCode status = UA_Server_run(parent->server, &parent->running);
     LOG_I("%s/%s: UA Server exit status: %s", __FILE__, __FUNCTION__, UA_StatusCode_name(status));
+    UA_Server_delete(parent->server);
+    parent->server = nullptr;
     return;
 }
