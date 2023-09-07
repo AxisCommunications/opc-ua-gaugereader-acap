@@ -45,7 +45,7 @@ ImgProvider::ImgProvider(
     const unsigned int height,
     const unsigned int numFrames,
     const VdoFormat format)
-    : initialized(false), width(width), height(height), num_app_frames(numFrames), vdo_format(format)
+    : shutdown(false), initialized(false), width(width), height(height), num_app_frames(numFrames), vdo_format(format)
 {
 }
 
@@ -133,7 +133,6 @@ bool ImgProvider::ChooseStreamResolution(
     VdoResolutionSet *set = nullptr;
     VdoChannel *channel = nullptr;
     GError *error = nullptr;
-    bool ret = false;
 
     // Retrieve channel resolutions
     channel = vdo_channel_get(VDO_CHANNEL, &error);
@@ -141,10 +140,10 @@ bool ImgProvider::ChooseStreamResolution(
     {
         LOG_E("%s: Failed vdo_channel_get(): %s", __func__, (error != nullptr) ? error->message : "N/A");
         g_clear_object(&channel);
-        g_free(set);
         g_clear_error(&error);
     }
     set = vdo_channel_get_resolutions(channel, nullptr, &error);
+    g_clear_object(&channel);
     if (!set)
     {
         syslog(
@@ -152,9 +151,9 @@ bool ImgProvider::ChooseStreamResolution(
             "%s: Failed vdo_channel_get_resolutions(): %s",
             __func__,
             (error != nullptr) ? error->message : "N/A");
-        g_clear_object(&channel);
         g_free(set);
         g_clear_error(&error);
+        return false;
     }
 
     // Find smallest VDO stream resolution that fits the requested size.
@@ -199,9 +198,9 @@ bool ImgProvider::ChooseStreamResolution(
             __func__);
     }
 
-    ret = true;
+    g_free(set);
 
-    return ret;
+    return true;
 }
 
 /**

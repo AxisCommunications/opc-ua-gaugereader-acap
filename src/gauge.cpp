@@ -224,12 +224,7 @@ void Gauge::CreateMask(const Mat &img, Mat &mask, const unsigned int radii) cons
 inline void Gauge::InvertImg(Mat &img) const
 {
     img.forEach<Point_<uchar>>(
-        [&img](Point_<uchar> &pixel, const int *position) -> void
-        {
-            // TODO: Remove unused variable pixel
-            (void)pixel;
-            img.at<uchar>(position) ^= 0xff;
-        });
+        [&img](Point_<uchar> &, const int *position) -> void { img.at<uchar>(position) ^= 0xff; });
 }
 
 bool Gauge::ContourEdgePoint(const Mat &img, Point &edge_point) const

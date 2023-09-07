@@ -31,6 +31,8 @@
 using namespace cv;
 using namespace std;
 
+static GMainLoop *loop = nullptr;
+
 static mutex mtx;
 
 static bool clockwise;
@@ -70,7 +72,7 @@ static gboolean get_param_int(AXParameter &axparameter, const gchar &name, int &
         return FALSE;
     }
     val = atoi(valuestr);
-    free(valuestr);
+    g_free(valuestr);
     return TRUE;
 }
 
@@ -278,26 +280,72 @@ static gboolean initimageanalysis(void)
     return TRUE;
 }
 
+static void signalHandler(int signal_num)
+{
+    switch (signal_num)
+    {
+    case SIGTERM:
+    case SIGABRT:
+    case SIGINT:
+        if (nullptr != provider)
+        {
+            ImgProvider::StopFrameFetch(*provider);
+        }
+        g_main_loop_quit(loop);
+        break;
+    default:
+        break;
+    }
+}
+
+static bool initializeSignalHandler(void)
+{
+    struct sigaction sa;
+    memset(&sa, 0, sizeof(struct sigaction));
+
+    if (-1 == sigemptyset(&sa.sa_mask))
+    {
+        LOG_E("Failed to initialize signal handler (%s)", strerror(errno));
+        return false;
+    }
+
+    sa.sa_handler = signalHandler;
+
+    if (0 > sigaction(SIGTERM, &sa, NULL) || 0 > sigaction(SIGABRT, &sa, NULL) || 0 > sigaction(SIGINT, &sa, NULL))
+    {
+        LOG_E("Failed to install signal handler (%s)", strerror(errno));
+        return false;
+    }
+
+    return true;
+}
+
 int main(int argc, char *argv[])
 {
     (void)argc;
     (void)argv;
+
+    GError *error = nullptr;
+    AXParameter *axparameter = nullptr;
     const char *app_name = "opcuagaugereader";
     openlog(app_name, LOG_PID | LOG_CONS, LOG_USER);
-    LOG_I("Running OpenCV example with VDO as video source");
 
     int result = EXIT_SUCCESS;
-    GMainLoop *loop;
+    if (!initializeSignalHandler())
+    {
+        result = EXIT_FAILURE;
+        goto exit;
+    }
 
     // Init parameter handling (will also launch OPC UA server)
     LOG_I("Init parameter handling ...");
-    GError *error = nullptr;
-    AXParameter *axparameter = ax_parameter_new(app_name, &error);
+    axparameter = ax_parameter_new(app_name, &error);
     if (nullptr != error)
     {
         LOG_E("%s/%s: ax_parameter_new failed (%s)", __FILE__, __FUNCTION__, error->message);
         g_error_free(error);
-        return EXIT_FAILURE;
+        result = EXIT_FAILURE;
+        goto exit;
     }
     LOG_I("%s/%s: ax_parameter_new success", __FILE__, __FUNCTION__);
     // clang-format off
@@ -311,8 +359,9 @@ int main(int argc, char *argv[])
         !setup_param(*axparameter, "port", param_callback))
     // clang-format on
     {
-        ax_parameter_free(axparameter);
-        return EXIT_FAILURE;
+        LOG_E("%s/%s: Failed to set up parameters", __FILE__, __FUNCTION__);
+        result = EXIT_FAILURE;
+        goto exit_param;
     }
     // Log retrieved param values
     LOG_I("%s/%s: center: (%u, %u)", __FILE__, __FUNCTION__, center_point.x, center_point.y);
@@ -324,7 +373,7 @@ int main(int argc, char *argv[])
     {
         LOG_E("%s/%s: Failed to init image analysis", __FILE__, __FUNCTION__);
         result = EXIT_FAILURE;
-        goto exit;
+        goto exit_param;
     }
 
     // Add image analysis as idle function
@@ -332,21 +381,29 @@ int main(int argc, char *argv[])
     {
         LOG_E("%s/%s: Failed to add idle function", __FILE__, __FUNCTION__);
         result = EXIT_FAILURE;
-        goto exit;
+        goto exit_param;
     }
 
     LOG_I("Start main loop ...");
+    assert(nullptr == loop);
     loop = g_main_loop_new(nullptr, FALSE);
     g_main_loop_run(loop);
+
+    // Cleanup
     LOG_I("Shutdown ...");
     g_main_loop_unref(loop);
-
-exit:
-    ax_parameter_free(axparameter);
     if (nullptr != provider)
     {
-        ImgProvider::StopFrameFetch(*provider);
         delete provider;
     }
+    opcuaserver.ShutDownServer();
+
+exit_param:
+    ax_parameter_free(axparameter);
+
+exit:
+    LOG_I("Exiting!");
+    closelog();
+
     return result;
 }
