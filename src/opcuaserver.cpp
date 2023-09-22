@@ -93,7 +93,10 @@ void OpcUaServer::UpdateGaugeValue(double value)
     // Always update value even if there is no change; that will bump the
     // timestamp on the server so the client can see if the value is fresh or
     // ancient.
-    assert(nullptr != server);
+    if (nullptr == server)
+    {
+        return;
+    }
     UA_Variant newvalue;
     UA_Variant_setScalar(&newvalue, &value, &UA_TYPES[UA_TYPES_DOUBLE]);
     UA_NodeId currentNodeId = UA_NODEID_STRING(1, LABEL);
