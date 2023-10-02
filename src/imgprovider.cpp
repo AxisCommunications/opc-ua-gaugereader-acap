@@ -144,14 +144,13 @@ bool ImgProvider::ChooseStreamResolution(
     }
     set = vdo_channel_get_resolutions(channel, nullptr, &error);
     g_clear_object(&channel);
-    if (!set)
+    if (nullptr == set)
     {
-        syslog(
-            LOG_ERR,
-            "%s: Failed vdo_channel_get_resolutions(): %s",
-            __func__,
+        LOG_E(
+            "%s/%s: vdo_channel_get_resolutions() failed (%s)",
+            __FILE__,
+            __FUNCTION__,
             (error != nullptr) ? error->message : "N/A");
-        g_free(set);
         g_clear_error(&error);
         return false;
     }
@@ -162,6 +161,8 @@ bool ImgProvider::ChooseStreamResolution(
     for (ssize_t i = 0; (gsize)i < set->count; ++i)
     {
         VdoResolution *res = &set->resolutions[i];
+        assert(nullptr != res);
+        LOG_E("%s/%s: resolution %zu: (%ux%u)", __FILE__, __FUNCTION__, i, res->width, res->height);
         if ((res->width >= reqWidth) && (res->height >= reqHeight))
         {
             unsigned int area = res->width * res->height;
@@ -182,20 +183,21 @@ bool ImgProvider::ChooseStreamResolution(
     {
         chosenWidth = set->resolutions[bestResolutionIdx].width;
         chosenHeight = set->resolutions[bestResolutionIdx].height;
-        syslog(
-            LOG_INFO,
-            "%s: We select stream w/h=%u x %u based on VDO channel info.\n",
-            __func__,
+        LOG_I(
+            "%s/%s: We select stream w/h=%u x %u based on VDO channel info",
+            __FILE__,
+            __FUNCTION__,
             chosenWidth,
             chosenHeight);
     }
     else
     {
-        syslog(
-            LOG_WARNING,
-            "%s: VDO channel info contains no reslution info. Fallback "
-            "to client-requested stream resolution.",
-            __func__);
+        LOG_E(
+            "%s/%s: VDO channel info contains no reslution info. Fallback to client-requested stream resolution %ux%u.",
+            __FILE__,
+            __FUNCTION__,
+            chosenWidth,
+            chosenHeight);
     }
 
     g_free(set);
@@ -218,11 +220,9 @@ bool ImgProvider::CreateStream(ImgProvider &provider)
     GError *error = nullptr;
     bool ret = false;
 
-    if (!vdoMap)
+    if (nullptr == vdoMap)
     {
         LOG_E("%s: Failed to create vdo_map", __func__);
-        g_object_unref(vdoMap);
-        g_clear_error(&error);
         return ret;
     }
 
@@ -237,16 +237,17 @@ bool ImgProvider::CreateStream(ImgProvider &provider)
     vdo_map_dump(vdoMap);
 
     VdoStream *vdo_stream = vdo_stream_new(vdoMap, nullptr, &error);
-    if (!vdo_stream)
+    if (nullptr == vdo_stream)
     {
-        LOG_E("%s: Failed creating vdo stream: %s", __func__, (error != nullptr) ? error->message : "N/A");
-        ImgProvider::ReleaseVdoBuffers(provider);
+        LOG_E("%s: Failed creating VDO stream (%s)", __func__, (error != nullptr) ? error->message : "N/A");
+        goto create_exit;
     }
 
     if (!ImgProvider::AllocateVdoBuffers(provider, *vdo_stream))
     {
         LOG_E("%s: Failed setting up VDO buffers!", __func__);
         ImgProvider::ReleaseVdoBuffers(provider);
+        goto create_exit;
     }
 
     // Start the actual VDO streaming.
@@ -254,12 +255,14 @@ bool ImgProvider::CreateStream(ImgProvider &provider)
     {
         LOG_E("%s: Failed starting stream: %s", __func__, (error != nullptr) ? error->message : "N/A");
         ImgProvider::ReleaseVdoBuffers(provider);
+        goto create_exit;
     }
 
     provider.vdo_stream = vdo_stream;
 
     ret = true;
 
+create_exit:
     g_object_unref(vdoMap);
     g_clear_error(&error);
     return ret;
@@ -284,8 +287,11 @@ bool ImgProvider::AllocateVdoBuffers(ImgProvider &provider, VdoStream &vdoStream
         provider.vdo_buffers[i] = vdo_stream_buffer_alloc(&vdoStream, nullptr, &error);
         if (provider.vdo_buffers[i] == nullptr)
         {
-            syslog(
-                LOG_ERR, "%s: Failed creating VDO buffer: %s", __func__, (error != nullptr) ? error->message : "N/A");
+            LOG_E(
+                "%s/%s: Failed creating VDO buffer: %s",
+                __FILE__,
+                __FUNCTION__,
+                (error != nullptr) ? error->message : "N/A");
             goto error_exit;
         }
 
@@ -295,10 +301,10 @@ bool ImgProvider::AllocateVdoBuffers(ImgProvider &provider, VdoStream &vdoStream
         void *dummyPtr = vdo_buffer_get_data(provider.vdo_buffers[i]);
         if (!dummyPtr)
         {
-            syslog(
-                LOG_ERR,
-                "%s: Failed initializing buffer memmap: %s",
-                __func__,
+            LOG_E(
+                "%s/%s: Failed initializing buffer memmap: %s",
+                __FILE__,
+                __FUNCTION__,
                 (error != nullptr) ? error->message : "N/A");
             goto error_exit;
         }
@@ -319,20 +325,20 @@ error_exit:
 }
 
 /**
- * brief Release references to the buffers we allocated in createStream().
+ * brief Release references to the buffers we allocated in CreateStream().
  *
  * param provider Reference to ImgProvider owning the buffer references.
  */
 void ImgProvider::ReleaseVdoBuffers(ImgProvider &provider)
 {
-    if (!provider.vdo_stream)
+    if (nullptr == provider.vdo_stream)
     {
         return;
     }
 
     for (size_t i = 0; i < NUM_VDO_BUFFERS; i++)
     {
-        if (provider.vdo_buffers[i] != nullptr)
+        if (nullptr != provider.vdo_buffers[i])
         {
             vdo_stream_buffer_unref(provider.vdo_stream, &provider.vdo_buffers[i], nullptr);
         }
