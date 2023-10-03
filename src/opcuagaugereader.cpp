@@ -239,8 +239,8 @@ static gboolean imageanalysis(gpointer data)
 static gboolean initimageanalysis(void)
 {
     // The desired width and height of the BGR frame
-    const unsigned int width = 1024;
-    const unsigned int height = 576;
+    const unsigned int width = 640;
+    const unsigned int height = 480;
 
     // chooseStreamResolution gets the least resource intensive stream
     // that exceeds or equals the desired resolution specified above

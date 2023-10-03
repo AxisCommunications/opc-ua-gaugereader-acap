@@ -1,6 +1,6 @@
-const w = 1024;
-const h = 576;
-const msize = 6;
+const w = 640;
+const h = 480;
+const msize = 5;
 const State = {
 	Begin: Symbol(0),
 	Center: Symbol(1),
