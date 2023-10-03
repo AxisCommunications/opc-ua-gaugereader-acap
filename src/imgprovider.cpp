@@ -184,7 +184,7 @@ bool ImgProvider::ChooseStreamResolution(
         chosenWidth = set->resolutions[bestResolutionIdx].width;
         chosenHeight = set->resolutions[bestResolutionIdx].height;
         LOG_I(
-            "%s/%s: We select stream w/h=%u x %u based on VDO channel info",
+            "%s/%s: We select stream %ux%u based on VDO channel info",
             __FILE__,
             __FUNCTION__,
             chosenWidth,
@@ -193,7 +193,8 @@ bool ImgProvider::ChooseStreamResolution(
     else
     {
         LOG_E(
-            "%s/%s: VDO channel info contains no reslution info. Fallback to client-requested stream resolution %ux%u.",
+            "%s/%s: VDO channel info contains no resolution info. Fallback to client-requested stream resolution "
+            "%ux%u.",
             __FILE__,
             __FUNCTION__,
             chosenWidth,
