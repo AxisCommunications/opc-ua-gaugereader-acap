@@ -23,6 +23,29 @@ The exposed value is in percent.
 purpose is above all to serve as an example and boilerplate rather than being
 ready for production.*
 
+## Example Use Cases
+
+> The following examples assume that you have a [SCADA](https://en.wikipedia.org/wiki/SCADA) (Supervisory
+Control And Data Acquisition) system or a [PLC](https://en.wikipedia.org/wiki/Programmable_logic_controller) (Programmable Logic Controller) system with OPC UA as the communication protocol and you want to take advantage of the Axis device capabilities to enrich or complement your operations.
+
+Analogue gauges are common in the industry, and it is often impossible to add
+digital sensors due to regulations or warranty restrictions. However, having a
+human operator monitor these gauges (which is what is done today) is
+inconvenient and error-prone. Instead, we can use an IP camera with very basic
+video analysis to automatically capture the digital reading and feed it into
+the industrial system. Automating the capture of digital values from analog
+gauges opens up a multitude of possibilities.
+
+For example:
+
+- shutdown or start a PLC process if a gauge reading exceeds or falls below a specified threshold
+- generate alarms when the gauge reading goes outside a predefined range
+- display real-time gauge values within the SCADA server's operational interface
+- maintain historical logs of gauge values to track changes over time
+
+> [!WARNING]
+> Please note that any analytic process can never be 100% accurate and the system designer has to account for this.
+
 ## Build
 
 The build process uses the
