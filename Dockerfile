@@ -1,4 +1,4 @@
-ARG ARCH=armv7hf
+ARG ARCH=aarch64
 ARG ACAP_SDK_VERSION=3.5
 ARG SDK_IMAGE=axisecp/acap-sdk
 ARG DEBUG_WRITE
@@ -120,9 +120,9 @@ RUN cp -P "$OPENCV_BUILD_DIR"/lib/lib*.so* "$OPEN62541_BUILD_DIR"/bin/lib* ./
 # Build ACAP
 WORKDIR "$ACAP_BUILD_DIR"
 COPY LICENSE \
-     Makefile \
-     manifest.json \
-     ./
+    Makefile \
+    manifest.json \
+    ./
 COPY html/ ./html
 COPY include/ ./include
 COPY src/ ./src
