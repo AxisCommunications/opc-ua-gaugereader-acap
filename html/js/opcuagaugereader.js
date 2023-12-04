@@ -1,5 +1,5 @@
 const w = 640;
-const h = 480;
+const h = 360;
 const msize = 5;
 const State = {
 	Begin: Symbol(0),
