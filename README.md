@@ -9,7 +9,7 @@
 
 This repository contains the source code to build a small example
 [ACAP version 3](https://help.axis.com/acap-3-developer-guide)
-application that reads an analogue gauge using video analytics with
+application that reads an analog gauge using video analytics with
 [OpenCV](https://opencv.org/)
 and exposes the value through a built-in
 [OPC UA](https://en.wikipedia.org/wiki/OPC_Unified_Architecture)
@@ -29,7 +29,7 @@ The exposed value is in percent.
 > The following examples assume that you have a [SCADA](https://en.wikipedia.org/wiki/SCADA) (Supervisory
 Control And Data Acquisition) system or a [PLC](https://en.wikipedia.org/wiki/Programmable_logic_controller) (Programmable Logic Controller) system with OPC UA as the communication protocol and you want to take advantage of the Axis device capabilities to enrich or complement your operations.
 
-Analogue gauges are common in the industry, and it is often impossible to add
+Analog gauges are common in the industry, and it is often impossible to add
 digital sensors due to regulations or warranty restrictions. However, having a
 human operator monitor these gauges (which is what is done today) is
 inconvenient and error-prone. Instead, we can use an IP camera with very basic
