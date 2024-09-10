@@ -1,4 +1,4 @@
-*Copyright (C) 2022, Axis Communications AB, Lund, Sweden. All Rights Reserved.*
+*Copyright (C) 2024, Axis Communications AB, Lund, Sweden. All Rights Reserved.*
 
 # OPC UA Gauge Reader ACAP
 
@@ -162,6 +162,7 @@ curl -k --anyauth -u root:<password> \
 will list the current settings:
 
 ```sh
+root.Opcuagaugereader.DynamicStringNumber=1
 root.Opcuagaugereader.centerX=479
 root.Opcuagaugereader.centerY=355
 root.Opcuagaugereader.clockwise=1
@@ -186,6 +187,15 @@ to read the value (and its timestamp) from the application's OPC UA server.
 
 > [!NOTE]
 > The application will also log the gauge value in the camera's syslog.
+
+### Bonus
+
+In addition to the above, the application will write the extracted gauge
+reading as a
+[dynamic text overlay](https://www.axis.com/vapix-library/subjects/t10175981/section/t10007638/display?section=t10007638-t10003585)
+string. It can then be displayed as camera text overlay&mdash;or used by graph
+widgets&mdash;with the modifier **#D***N*, where *N* is set by the application
+parameter `DynamicStringNumber`.
 
 ## License
 

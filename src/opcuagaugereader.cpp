@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2022, Axis Communications AB, Lund, Sweden
+ * Copyright (C) 2024, Axis Communications AB, Lund, Sweden
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,6 +24,7 @@
 #include <syslog.h>
 
 #include "common.hpp"
+#include "dynstrhandler.hpp"
 #include "gauge.hpp"
 #include "imgprovider.hpp"
 #include "opcuaserver.hpp"
@@ -45,6 +46,9 @@ static OpcUaServer opcuaserver;
 static ImgProvider *provider = nullptr;
 static Mat nv12_mat;
 static Mat gray_mat;
+
+static DynStrHandler *dynstrhandler = nullptr;
+static guint8 dynstrnbr = 0;
 
 static gchar *get_param(AXParameter &axparameter, const gchar &name)
 {
@@ -89,6 +93,15 @@ static void update_local_param(const gchar &name, const uint32_t val)
         {
             LOG_E("%s/%s: Failed to launch OPC UA server", __FILE__, __FUNCTION__);
             assert(false);
+        }
+        return;
+    }
+    else if (0 == strncmp("DynamicStringNumber", &name, 19))
+    {
+        dynstrnbr = val;
+        if (nullptr != dynstrhandler)
+        {
+            dynstrhandler->SetStrNumber(dynstrnbr);
         }
         return;
     }
@@ -228,6 +241,10 @@ static gboolean imageanalysis(gpointer data)
     {
         LOG_I("%s/%s: Value was %f", __FILE__, __FUNCTION__, value);
         opcuaserver.UpdateGaugeValue(value);
+        if (nullptr != dynstrhandler)
+        {
+            dynstrhandler->UpdateStr(value);
+        }
     }
 
     // Release the VDO frame buffer
@@ -349,7 +366,8 @@ int main(int argc, char *argv[])
     }
     LOG_I("%s/%s: ax_parameter_new success", __FILE__, __FUNCTION__);
     // clang-format off
-    if (!setup_param(*axparameter, "centerX", param_callback) ||
+    if (!setup_param(*axparameter, "DynamicStringNumber", param_callback) ||
+        !setup_param(*axparameter, "centerX", param_callback) ||
         !setup_param(*axparameter, "centerY", param_callback) ||
         !setup_param(*axparameter, "clockwise", param_callback) ||
         !setup_param(*axparameter, "maxX", param_callback) ||
@@ -367,6 +385,9 @@ int main(int argc, char *argv[])
     LOG_I("%s/%s: center: (%u, %u)", __FILE__, __FUNCTION__, center_point.x, center_point.y);
     LOG_I("%s/%s: min: (%u, %u)", __FILE__, __FUNCTION__, min_point.x, min_point.y);
     LOG_I("%s/%s: max: (%u, %u)", __FILE__, __FUNCTION__, max_point.x, max_point.y);
+
+    // Init dynamic string handling
+    dynstrhandler = new DynStrHandler(dynstrnbr);
 
     // Initialize image analysis
     if (!initimageanalysis())
@@ -399,6 +420,7 @@ int main(int argc, char *argv[])
     opcuaserver.ShutDownServer();
 
 exit_param:
+    delete dynstrhandler;
     ax_parameter_free(axparameter);
 
 exit:

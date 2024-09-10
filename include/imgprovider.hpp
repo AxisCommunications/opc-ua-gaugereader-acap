@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2022, Axis Communications AB, Lund, Sweden
+ * Copyright (C) 2024, Axis Communications AB, Lund, Sweden
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -24,8 +24,10 @@
 #include <pthread.h>
 #include <stdbool.h>
 
-#include "vdo-stream.h"
-#include "vdo-types.h"
+#pragma GCC diagnostic ignored "-Wunused-parameter"
+#include <vdo-stream.h>
+#include <vdo-types.h>
+#pragma GCC diagnostic pop
 
 #define _Atomic(X) std::atomic<X>
 #define NUM_VDO_BUFFERS (8)

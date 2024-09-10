@@ -1,13 +1,13 @@
 ARG ARCH=aarch64
-ARG ACAP_SDK_VERSION=3.5
-ARG SDK_IMAGE=axisecp/acap-sdk
+ARG SDK_VERSION=1.15
+ARG SDK_IMAGE=axisecp/acap-native-sdk
 ARG DEBUG_WRITE
 ARG BUILD_DIR=/opt/build
 ARG ACAP_BUILD_DIR="$BUILD_DIR"/app
 ARG OPEN62541_VERSION=1.2.9
 ARG OPENCV_VERSION=4.5.5
 
-FROM $SDK_IMAGE:$ACAP_SDK_VERSION-$ARCH-ubuntu20.04 AS builder
+FROM $SDK_IMAGE:$SDK_VERSION-$ARCH AS builder
 
 # Set general arguments
 ARG ARCH
@@ -105,7 +105,7 @@ SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 RUN curl -L https://github.com/open62541/open62541/archive/refs/tags/v$OPEN62541_VERSION.tar.gz | tar xz
 WORKDIR "$OPEN62541_BUILD_DIR"
 RUN . /opt/axis/acapsdk/environment-setup* && \
-    cmake -j \
+    cmake \
     -DCMAKE_INSTALL_PREFIX="$SDKTARGETSYSROOT"/usr \
     -DBUILD_BUILD_EXAMPLES=OFF \
     -DBUILD_SHARED_LIBS=ON \
