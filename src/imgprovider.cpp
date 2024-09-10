@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2022, Axis Communications AB, Lund, Sweden
+ * Copyright (C) 2024, Axis Communications AB, Lund, Sweden
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,11 +20,14 @@
 
 #include <assert.h>
 #include <errno.h>
+
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <vdo-channel.h>
+#include <vdo-map.h>
+#pragma GCC diagnostic pop
 
 #include "common.hpp"
 #include "imgprovider.hpp"
-#include "vdo-map.h"
 
 #define VDO_CHANNEL (1)
 

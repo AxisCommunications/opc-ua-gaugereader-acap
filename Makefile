@@ -2,7 +2,7 @@ TARGET = opcuagaugereader
 OBJECTS = $(wildcard $(CURDIR)/src/*.cpp)
 RM ?= rm -f
 
-PKGS = gio-2.0 gio-unix-2.0 vdostream open62541 axparameter
+PKGS = gio-2.0 gio-unix-2.0 vdostream open62541 libcurl axparameter
 
 CXXFLAGS += -Os -pipe -std=c++11 -Wall -Werror -Wextra
 CXXFLAGS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags-only-I $(PKGS))
