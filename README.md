@@ -8,8 +8,8 @@
 ![Image of a water level gauge](images/water_level_gauge.jpg)
 
 This repository contains the source code to build a small example
-[ACAP version 3](https://help.axis.com/acap-3-developer-guide)
-application that reads an analog gauge using video analytics with
+[ACAP version 4](https://axiscommunications.github.io/acap-documentation/)
+(native) application that reads an analog gauge using video analytics with
 [OpenCV](https://opencv.org/)
 and exposes the value through a built-in
 [OPC UA](https://en.wikipedia.org/wiki/OPC_Unified_Architecture)
