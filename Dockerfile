@@ -4,7 +4,7 @@ ARG SDK_IMAGE=axisecp/acap-native-sdk
 ARG DEBUG_WRITE
 ARG BUILD_DIR=/opt/build
 ARG ACAP_BUILD_DIR="$BUILD_DIR"/app
-ARG OPEN62541_VERSION=1.2.9
+ARG OPEN62541_VERSION=1.4.4
 ARG OPENCV_VERSION=4.5.5
 
 FROM $SDK_IMAGE:$SDK_VERSION-$ARCH AS builder
@@ -107,11 +107,12 @@ WORKDIR "$OPEN62541_BUILD_DIR"
 RUN . /opt/axis/acapsdk/environment-setup* && \
     cmake \
     -DCMAKE_INSTALL_PREFIX="$SDKTARGETSYSROOT"/usr \
+    -DCMAKE_BUILD_TYPE=Release \
     -DBUILD_BUILD_EXAMPLES=OFF \
     -DBUILD_SHARED_LIBS=ON \
     -DUA_ENABLE_NODEMANAGEMENT=ON \
     "$OPEN62541_SRC_DIR"
-RUN make -j install
+RUN make -j "$(nproc)" install
 
 # Copy the built library files to application directory
 WORKDIR "$ACAP_BUILD_DIR"/lib
