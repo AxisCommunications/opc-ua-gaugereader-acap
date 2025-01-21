@@ -8,7 +8,7 @@
             "embeddedSdkVersion": "3.0",
             "vendorUrl": "https://www.axis.com/",
             "runMode": "respawn",
-            "version": "2.0.2"
+            "version": "2.0.3"
         },
 		"configuration": {
 			"settingPage": "settings.html",
