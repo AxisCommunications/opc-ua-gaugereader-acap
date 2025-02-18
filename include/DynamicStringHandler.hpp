@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2024, Axis Communications AB, Lund, Sweden
+ * Copyright (C) 2025, Axis Communications AB, Lund, Sweden
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,6 +31,7 @@ class DynamicStringHandler
 {
   public:
     DynamicStringHandler(const guint8 nbr);
+    DynamicStringHandler() : DynamicStringHandler(1){};
     ~DynamicStringHandler();
     void SetStrNumber(const guint8 newnbr);
     void UpdateStr(const double value);

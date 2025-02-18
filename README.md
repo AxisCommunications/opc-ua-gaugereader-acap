@@ -1,8 +1,8 @@
-*Copyright (C) 2024, Axis Communications AB, Lund, Sweden. All Rights Reserved.*
+*Copyright (C) 2025, Axis Communications AB, Lund, Sweden. All Rights Reserved.*
 
 # OPC UA Gauge Reader ACAP
 
-[![Build ACAPs](https://github.com/AxisCommunications/opc-ua-gaugereader-acap/actions/workflows/build.yml/badge.svg)](https://github.com/AxisCommunications/opc-ua-gaugereader-acap/actions/workflows/build.yml)
+[![Build ACAP packages](https://github.com/AxisCommunications/opc-ua-gaugereader-acap/actions/workflows/build.yml/badge.svg)](https://github.com/AxisCommunications/opc-ua-gaugereader-acap/actions/workflows/build.yml)
 [![GitHub Super-Linter](https://github.com/AxisCommunications/opc-ua-gaugereader-acap/actions/workflows/super-linter.yml/badge.svg)](https://github.com/AxisCommunications/opc-ua-gaugereader-acap/actions/workflows/super-linter.yml)
 
 ![Image of a water level gauge](images/water_level_gauge.jpg)
