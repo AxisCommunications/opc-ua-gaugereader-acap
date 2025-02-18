@@ -25,13 +25,13 @@
  * brief A type for handling setting dynamic text overlay string via VAPIX.
  *
  * This is not needed for OPC UA, but enables the camera to use the extracted
- * gauge reading in overlays, which can add value to the live view.
+ * Gauge reading in overlays, which can add value to the live view.
  */
-class DynStrHandler
+class DynamicStringHandler
 {
   public:
-    DynStrHandler(const guint8 nbr);
-    ~DynStrHandler();
+    DynamicStringHandler(const guint8 nbr);
+    ~DynamicStringHandler();
     void SetStrNumber(const guint8 newnbr);
     void UpdateStr(const double value);
 
@@ -39,7 +39,7 @@ class DynStrHandler
     std::string RetrieveVapixCredentials(const char &username) const;
     gboolean VapixGet(const std::string &url);
 
-    CURL *curl;
-    guint8 nbr;
-    std::chrono::time_point<std::chrono::steady_clock> lastupdate;
+    CURL *curl_;
+    guint8 nbr_;
+    std::chrono::time_point<std::chrono::steady_clock> lastupdate_;
 };
