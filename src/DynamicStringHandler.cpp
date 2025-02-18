@@ -18,8 +18,8 @@
 #include <cstdlib>
 #include <gio/gio.h>
 
+#include "DynamicStringHandler.hpp"
 #include "common.hpp"
-#include "dynstrhandler.hpp"
 
 using namespace std;
 using namespace std::chrono;
@@ -33,62 +33,63 @@ static size_t append_to_string_callback(char *ptr, size_t size, size_t nmemb, st
     return totalsize;
 }
 
-DynStrHandler::DynStrHandler(const guint8 nbr) : curl(nullptr), nbr(nbr), lastupdate(steady_clock::now())
+DynamicStringHandler::DynamicStringHandler(const guint8 nbr)
+    : curl_(nullptr), nbr_(nbr), lastupdate_(steady_clock::now())
 {
     assert(1 <= nbr);
     assert(16 >= nbr);
 
     curl_global_init(CURL_GLOBAL_DEFAULT);
-    curl = curl_easy_init();
-    assert(nullptr != curl);
+    curl_ = curl_easy_init();
+    assert(nullptr != curl_);
 
     const gchar *user = "example-vapix-user";
     auto credentials = RetrieveVapixCredentials(*user);
 
     auto curl_init =
-        (CURLE_OK == curl_easy_setopt(curl, CURLOPT_HTTPAUTH, (long)(CURLAUTH_DIGEST | CURLAUTH_BASIC)) &&
-         CURLE_OK == curl_easy_setopt(curl, CURLOPT_NOPROGRESS, 2L) &&
-         CURLE_OK == curl_easy_setopt(curl, CURLOPT_USERPWD, credentials.c_str()) &&
-         CURLE_OK == curl_easy_setopt(curl, CURLOPT_HTTPGET, 1L) &&
-         CURLE_OK == curl_easy_setopt(curl, CURLOPT_TIMEOUT, 1) &&
-         CURLE_OK == curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, append_to_string_callback));
+        (CURLE_OK == curl_easy_setopt(curl_, CURLOPT_HTTPAUTH, (long)(CURLAUTH_DIGEST | CURLAUTH_BASIC)) &&
+         CURLE_OK == curl_easy_setopt(curl_, CURLOPT_NOPROGRESS, 2L) &&
+         CURLE_OK == curl_easy_setopt(curl_, CURLOPT_USERPWD, credentials.c_str()) &&
+         CURLE_OK == curl_easy_setopt(curl_, CURLOPT_HTTPGET, 1L) &&
+         CURLE_OK == curl_easy_setopt(curl_, CURLOPT_TIMEOUT, 1) &&
+         CURLE_OK == curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, append_to_string_callback));
 
     assert(curl_init);
     LOG_I("%s/%s: Dynamic string handler constructor is done!", __FILE__, __FUNCTION__);
 }
 
-DynStrHandler::~DynStrHandler()
+DynamicStringHandler::~DynamicStringHandler()
 {
-    assert(nullptr != curl);
-    curl_easy_cleanup(curl);
+    assert(nullptr != curl_);
+    curl_easy_cleanup(curl_);
     curl_global_cleanup();
 }
 
-void DynStrHandler::SetStrNumber(const guint8 newnbr)
+void DynamicStringHandler::SetStrNumber(const guint8 newnbr)
 {
-    nbr = newnbr;
+    nbr_ = newnbr;
     LOG_I("Now using dynamic string number %u", newnbr);
 }
 
-void DynStrHandler::UpdateStr(const double value)
+void DynamicStringHandler::UpdateStr(const double value)
 {
     // We don't need to update too frequently
     auto nowtime = steady_clock::now();
-    if (1 > duration_cast<seconds>(nowtime - lastupdate).count())
+    if (1 > duration_cast<seconds>(nowtime - lastupdate_).count())
     {
         return;
     }
 
-    auto url = "http://127.0.0.12/axis-cgi/dynamicoverlay.cgi?action=settext&text_index=" + to_string(nbr) +
+    auto url = "http://127.0.0.12/axis-cgi/dynamicoverlay.cgi?action=settext&text_index=" + to_string(nbr_) +
                "&text=" + to_string(value);
     if (!VapixGet(url))
     {
         LOG_E("%s/%s: Failed to update dynamic string", __FILE__, __FUNCTION__);
     }
-    lastupdate = nowtime;
+    lastupdate_ = nowtime;
 }
 
-string DynStrHandler::RetrieveVapixCredentials(const char &username) const
+string DynamicStringHandler::RetrieveVapixCredentials(const char &username) const
 {
     GError *error = nullptr;
     auto connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, nullptr, &error);
@@ -132,20 +133,20 @@ string DynStrHandler::RetrieveVapixCredentials(const char &username) const
     return credentials;
 }
 
-gboolean DynStrHandler::VapixGet(const string &url)
+gboolean DynamicStringHandler::VapixGet(const string &url)
 {
-    assert(nullptr != curl);
+    assert(nullptr != curl_);
 
     string response;
 
-    if (CURLE_OK != curl_easy_setopt(curl, CURLOPT_URL, url.c_str()) ||
-        CURLE_OK != curl_easy_setopt(curl, CURLOPT_WRITEDATA, &response))
+    if (CURLE_OK != curl_easy_setopt(curl_, CURLOPT_URL, url.c_str()) ||
+        CURLE_OK != curl_easy_setopt(curl_, CURLOPT_WRITEDATA, &response))
     {
         LOG_E("%s/%s: Failed to set up cURL options", __FILE__, __FUNCTION__);
         return FALSE;
     }
 
-    auto res = curl_easy_perform(curl);
+    auto res = curl_easy_perform(curl_);
     if (res != CURLE_OK)
     {
         LOG_E("%s/%s: curl fail %d '%s''", __FILE__, __FUNCTION__, res, curl_easy_strerror(res));
@@ -153,7 +154,7 @@ gboolean DynStrHandler::VapixGet(const string &url)
     }
 
     long response_code;
-    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &response_code);
+    curl_easy_getinfo(curl_, CURLINFO_RESPONSE_CODE, &response_code);
     if (200 != response_code)
     {
         LOG_E("Got response code %ld with response '%s'", response_code, response.c_str());

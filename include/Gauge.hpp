@@ -32,21 +32,21 @@ class Gauge
     double ComputeGaugeValue(const cv::Mat &img) const;
 
   private:
-    bool clockwise;
-    cv::Mat big_mask;
-    cv::Mat global_mask;
-    cv::Mat small_mask;
-    cv::Point point_center;
-    cv::Point point_min;
-    cv::Point point_max;
-    cv::Range croprange_x;
-    cv::Range croprange_y;
-    cv::Size img_size;
-    double angle_max = 0;
-    double angle_min = 0;
-    double angle_min_max = 0;
-    unsigned int big_radii;
-    unsigned int small_radii;
+    bool clockwise_;
+    cv::Mat big_mask_;
+    cv::Mat global_mask_;
+    cv::Mat small_mask_;
+    cv::Point point_center_;
+    cv::Point point_min_;
+    cv::Point point_max_;
+    cv::Range croprange_x_;
+    cv::Range croprange_y_;
+    cv::Size img_size_;
+    double angle_max_ = 0;
+    double angle_min_ = 0;
+    double angle_min_max_ = 0;
+    unsigned int big_radii_;
+    unsigned int small_radii_;
     double EuclidianDistance(const cv::Point &a, const cv::Point &b) const;
     double GetDegree(const cv::Point &origo, const cv::Point &point) const;
     bool IsDark(const cv::Mat &img, const cv::Mat &mask) const;

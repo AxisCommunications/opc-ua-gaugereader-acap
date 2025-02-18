@@ -23,11 +23,11 @@
 #include <string>
 #include <syslog.h>
 
+#include "DynamicStringHandler.hpp"
+#include "Gauge.hpp"
+#include "ImageProvider.hpp"
+#include "OpcUaServer.hpp"
 #include "common.hpp"
-#include "dynstrhandler.hpp"
-#include "gauge.hpp"
-#include "imgprovider.hpp"
-#include "opcuaserver.hpp"
 
 using namespace cv;
 using namespace std;
@@ -43,12 +43,12 @@ static Point max_point;
 static Gauge *gauge = nullptr;
 static OpcUaServer opcuaserver;
 
-static ImgProvider *provider = nullptr;
+static ImageProvider *provider = nullptr;
 static Mat nv12_mat;
 static Mat gray_mat;
 
-static DynStrHandler *dynstrhandler = nullptr;
-static guint8 dynstrnbr = 0;
+static DynamicStringHandler *dynstr_handler = nullptr;
+static guint8 dynstr_nbr = 0;
 
 static gchar *get_param(AXParameter &axparameter, const gchar &name)
 {
@@ -82,7 +82,7 @@ static gboolean get_param_int(AXParameter &axparameter, const gchar &name, int &
 
 static void update_local_param(const gchar &name, const uint32_t val)
 {
-    // Parameters that do not change the gauge reader go here
+    // Parameters that do not change the Gauge reader go here
     if (0 == strncmp("port", &name, 4))
     {
         if (opcuaserver.IsRunning())
@@ -98,15 +98,15 @@ static void update_local_param(const gchar &name, const uint32_t val)
     }
     else if (0 == strncmp("DynamicStringNumber", &name, 19))
     {
-        dynstrnbr = val;
-        if (nullptr != dynstrhandler)
+        dynstr_nbr = val;
+        if (nullptr != dynstr_handler)
         {
-            dynstrhandler->SetStrNumber(dynstrnbr);
+            dynstr_handler->SetStrNumber(dynstr_nbr);
         }
         return;
     }
 
-    // The following parameters trigger recalibration of the gauge
+    // The following parameters trigger recalibration of the Gauge
     if (0 == strncmp("cloc", &name, 4))
     {
         clockwise = (1 == val);
@@ -205,7 +205,7 @@ static gboolean imageanalysis(gpointer data)
     (void)data;
     // Get the latest NV12 image frame from VDO using the imageprovider
     assert(nullptr != provider);
-    VdoBuffer *buf = ImgProvider::GetLastFrameBlocking(*provider);
+    VdoBuffer *buf = ImageProvider::GetLastFrameBlocking(*provider);
     if (!buf)
     {
         LOG_I("%s/%s: No more frames available, exiting", __FILE__, __FUNCTION__);
@@ -224,7 +224,7 @@ static gboolean imageanalysis(gpointer data)
     // Create gauge if nonexistent
     if (nullptr == gauge)
     {
-        LOG_I("%s/%s: Set up new gauge", __FILE__, __FUNCTION__);
+        LOG_I("%s/%s: Set up new Gauge", __FILE__, __FUNCTION__);
         gauge = new Gauge(gray_mat, center_point, min_point, max_point, clockwise);
     }
     assert(nullptr != gauge);
@@ -235,20 +235,20 @@ static gboolean imageanalysis(gpointer data)
     assert(value <= 100.0);
     if (0 > value)
     {
-        LOG_E("%s/%s: Failed to read out gauge value from current scene/setup", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: Failed to read out Gauge value from current scene/setup", __FILE__, __FUNCTION__);
     }
     else
     {
         LOG_I("%s/%s: Value was %f", __FILE__, __FUNCTION__, value);
         opcuaserver.UpdateGaugeValue(value);
-        if (nullptr != dynstrhandler)
+        if (nullptr != dynstr_handler)
         {
-            dynstrhandler->UpdateStr(value);
+            dynstr_handler->UpdateStr(value);
         }
     }
 
     // Release the VDO frame buffer
-    ImgProvider::ReturnFrame(*provider, *buf);
+    ImageProvider::ReturnFrame(*provider, *buf);
 
     return TRUE;
 }
@@ -263,7 +263,7 @@ static gboolean initimageanalysis(void)
     // that exceeds or equals the desired resolution specified above
     unsigned int streamWidth = 0;
     unsigned int streamHeight = 0;
-    if (!ImgProvider::ChooseStreamResolution(width, height, streamWidth, streamHeight))
+    if (!ImageProvider::ChooseStreamResolution(width, height, streamWidth, streamHeight))
     {
         LOG_E("%s/%s: Failed choosing stream resolution", __FILE__, __FUNCTION__);
         return FALSE;
@@ -271,20 +271,20 @@ static gboolean initimageanalysis(void)
 
     LOG_I("Creating VDO image provider and creating stream %d x %d", streamWidth, streamHeight);
     // TODO: Could we use the subformat Y800 to get gray 1-channel image directly?
-    provider = new ImgProvider(streamWidth, streamHeight, 2, VDO_FORMAT_YUV);
+    provider = new ImageProvider(streamWidth, streamHeight, 2, VDO_FORMAT_YUV);
     if (!provider)
     {
-        LOG_E("%s/%s: Failed to create ImgProvider", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: Failed to create ImageProvider", __FILE__, __FUNCTION__);
         return FALSE;
     }
-    if (!provider->InitImgProvider())
+    if (!provider->InitImageProvider())
     {
-        LOG_E("%s/%s: Failed to init ImgProvider", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: Failed to init ImageProvider", __FILE__, __FUNCTION__);
         return FALSE;
     }
 
     LOG_I("Start fetching video frames from VDO");
-    if (!ImgProvider::StartFrameFetch(*provider))
+    if (!ImageProvider::StartFrameFetch(*provider))
     {
         LOG_E("%s/%s: Failed to fetch frames from VDO", __FILE__, __FUNCTION__);
         return FALSE;
@@ -306,7 +306,7 @@ static void signalHandler(int signal_num)
     case SIGINT:
         if (nullptr != provider)
         {
-            ImgProvider::StopFrameFetch(*provider);
+            ImageProvider::StopFrameFetch(*provider);
         }
         g_main_loop_quit(loop);
         break;
@@ -344,7 +344,7 @@ int main(int argc, char *argv[])
 
     GError *error = nullptr;
     AXParameter *axparameter = nullptr;
-    const char *app_name = "opcuagaugereader";
+    auto app_name = basename(argv[0]);
     openlog(app_name, LOG_PID | LOG_CONS, LOG_USER);
 
     int result = EXIT_SUCCESS;
@@ -387,7 +387,7 @@ int main(int argc, char *argv[])
     LOG_I("%s/%s: max: (%u, %u)", __FILE__, __FUNCTION__, max_point.x, max_point.y);
 
     // Init dynamic string handling
-    dynstrhandler = new DynStrHandler(dynstrnbr);
+    dynstr_handler = new DynamicStringHandler(dynstr_nbr);
 
     // Initialize image analysis
     if (!initimageanalysis())
@@ -420,7 +420,7 @@ int main(int argc, char *argv[])
     opcuaserver.ShutDownServer();
 
 exit_param:
-    delete dynstrhandler;
+    delete dynstr_handler;
     ax_parameter_free(axparameter);
 
 exit:

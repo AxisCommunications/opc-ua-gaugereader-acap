@@ -34,8 +34,7 @@ class OpcUaServer
   private:
     void AddDouble(char *label, UA_Double value);
     static void RunUaServer(OpcUaServer *parent);
-    double gaugevalue;
-    std::thread *serverthread;
-    UA_Boolean running;
-    UA_Server *server;
+    std::thread *serverthread_;
+    UA_Boolean running_;
+    UA_Server *server_;
 };

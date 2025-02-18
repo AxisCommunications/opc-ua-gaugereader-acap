@@ -20,8 +20,8 @@
 #include <map>
 #include <opencv2/imgproc.hpp>
 
+#include "Gauge.hpp"
 #include "common.hpp"
-#include "gauge.hpp"
 
 using namespace cv;
 using namespace std;
@@ -40,19 +40,19 @@ Gauge::Gauge(
     const Point &point_min,
     const Point &point_max,
     const bool clockwise)
-    : clockwise(clockwise), img_size(img.size())
+    : clockwise_(clockwise), img_size_(img.size())
 {
     // Calculate angles and radiuses
-    angle_min = GetDegree(point_center, point_min);
-    angle_max = GetDegree(point_center, point_max);
-    angle_min_max = AngleDifference(angle_min, angle_max);
+    angle_min_ = GetDegree(point_center, point_min);
+    angle_max_ = GetDegree(point_center, point_max);
+    angle_min_max_ = AngleDifference(angle_min_, angle_max_);
     auto d1 = EuclidianDistance(point_center, point_min);
     auto d2 = EuclidianDistance(point_center, point_max);
     unsigned int radii = round((d1 + d2) / 2);
-    big_radii = round(radii * 0.75);
-    small_radii = round(radii / 3);
+    big_radii_ = round(radii * 0.75);
+    small_radii_ = round(radii / 3);
 
-    // Crop to avoid processing pixels outside gauge area
+    // Crop to avoid processing pixels outside Gauge area
     auto crop_radii = max(d1, d2);
     int max_x = point_center.x + crop_radii;
     int max_y = point_center.y + crop_radii;
@@ -74,24 +74,24 @@ Gauge::Gauge(
     {
         min_y = 0;
     }
-    croprange_x = Range(min_x, max_x);
-    croprange_y = Range(min_y, max_y);
-    const Point offset(croprange_x.start, croprange_y.start);
-    this->point_min = point_min - offset;
-    this->point_center = point_center - offset;
-    this->point_max = point_max - offset;
-    Mat cropped_img = img(croprange_y, croprange_x);
+    croprange_x_ = Range(min_x, max_x);
+    croprange_y_ = Range(min_y, max_y);
+    const Point offset(croprange_x_.start, croprange_y_.start);
+    point_min_ = point_min - offset;
+    point_center_ = point_center - offset;
+    point_max_ = point_max - offset;
+    Mat cropped_img = img(croprange_y_, croprange_x_);
     DBG_WRITE_IMG("cropped_img.jpg", cropped_img);
 
-    // Create gauge masks
-    CreateMask(cropped_img, big_mask, big_radii);
-    CreateMask(cropped_img, small_mask, small_radii);
-    bitwise_xor(big_mask, small_mask, global_mask);
-    DBG_WRITE_IMG("mask_0_big.png", big_mask);
-    DBG_WRITE_IMG("mask_1_small.png", small_mask);
-    DBG_WRITE_IMG("mask_2_global.png", global_mask);
+    // Create Gauge masks
+    CreateMask(cropped_img, big_mask_, big_radii_);
+    CreateMask(cropped_img, small_mask_, small_radii_);
+    bitwise_xor(big_mask_, small_mask_, global_mask_);
+    DBG_WRITE_IMG("mask_0_big.png", big_mask_);
+    DBG_WRITE_IMG("mask_1_small.png", small_mask_);
+    DBG_WRITE_IMG("mask_2_global.png", global_mask_);
 
-    LOG_I("%s/%s: img size: (%u, %u)", __FILE__, __FUNCTION__, img_size.width, img_size.height);
+    LOG_I("%s/%s: img size: (%u, %u)", __FILE__, __FUNCTION__, img_size_.width, img_size_.height);
 }
 
 Gauge::~Gauge()
@@ -101,17 +101,17 @@ Gauge::~Gauge()
 double Gauge::ComputeGaugeValue(const Mat &img) const
 {
     // Make sure input image has the same size as the gague was set up for
-    assert(img_size == img.size());
+    assert(img.size() == img_size_);
 
     // Use 2 matrices for work back and forth
     Mat mat_a;
     Mat mat_b;
 
     // Crop
-    mat_a = img(croprange_y, croprange_x);
+    mat_a = img(croprange_y_, croprange_x_);
 
     // Always do dark check for handling shifting light conditions over time
-    if (IsDark(mat_a, big_mask))
+    if (IsDark(mat_a, big_mask_))
     {
         // Invert
         InvertImg(mat_a);
@@ -127,7 +127,7 @@ double Gauge::ComputeGaugeValue(const Mat &img) const
     Mat kernel(2, 2, CV_8U, 1);
     morphologyEx(mat_a, mat_b, MORPH_CLOSE, kernel);
     DBG_WRITE_IMG("compute_gauge_value_3_morphology_ex.jpg", mat_b);
-    bitwise_and(mat_b, global_mask, mat_a);
+    bitwise_and(mat_b, global_mask_, mat_a);
     DBG_WRITE_IMG("compute_gauge_value_4_bitwise_and.jpg", mat_a);
 
     Point pointer_edge;
@@ -138,18 +138,18 @@ double Gauge::ComputeGaugeValue(const Mat &img) const
     }
 
     // Calculate and return value (percent)
-    auto angle_pointer = GetDegree(point_center, pointer_edge);
-    auto min_pointer_angle = AngleDifference(angle_min, angle_pointer);
+    auto angle_pointer = GetDegree(point_center_, pointer_edge);
+    auto min_pointer_angle = AngleDifference(angle_min_, angle_pointer);
     if (350 < min_pointer_angle && 360 > min_pointer_angle)
     {
         // pointer slightly below min => minimum value
         return 0;
     }
-    else if (min_pointer_angle > angle_min_max)
+    else if (min_pointer_angle > angle_min_max_)
     {
         return 100;
     }
-    return 100 * min_pointer_angle / angle_min_max;
+    return 100 * min_pointer_angle / angle_min_max_;
 }
 
 double Gauge::EuclidianDistance(const Point &a, const Point &b) const
@@ -197,7 +197,7 @@ bool Gauge::IsDark(const Mat &img, const Mat &mask) const
 double Gauge::AngleDifference(const double base_point, const double mesh_point) const
 {
     double angle = mesh_point - base_point;
-    if (!clockwise)
+    if (!clockwise_)
     {
         angle = 0 - angle;
     }
@@ -207,18 +207,18 @@ double Gauge::AngleDifference(const double base_point, const double mesh_point) 
 void Gauge::CreateMask(const Mat &img, Mat &mask, const unsigned int radii) const
 {
     mask = Mat::zeros(img.size(), CV_8U);
-    double ellipse_min = angle_min - 10;
-    double ellipse_max = angle_max + 10;
-    if (clockwise && ellipse_max < ellipse_min)
+    double ellipse_min = angle_min_ - 10;
+    double ellipse_max = angle_max_ + 10;
+    if (clockwise_ && ellipse_max < ellipse_min)
     {
         ellipse_max += 360;
     }
-    else if (!clockwise && ellipse_max > ellipse_min)
+    else if (!clockwise_ && ellipse_max > ellipse_min)
     {
         ellipse_max -= 360;
     }
     ellipse(
-        mask, point_center, Size(radii, radii), 0.0, ellipse_min, ellipse_max, Scalar(255, 255, 255), -1, LINE_8, 0);
+        mask, point_center_, Size(radii, radii), 0.0, ellipse_min, ellipse_max, Scalar(255, 255, 255), -1, LINE_8, 0);
 }
 
 inline void Gauge::InvertImg(Mat &img) const
@@ -239,8 +239,8 @@ bool Gauge::ContourEdgePoint(const Mat &img, Point &edge_point) const
         { return contourArea(c1, false) > contourArea(c2, false); });
     Mat big_circle_mask = Mat::zeros(img.size(), CV_8U);
     Mat small_circle_mask = Mat::zeros(img.size(), CV_8U);
-    circle(big_circle_mask, point_center, big_radii, Scalar(255), 2);
-    circle(small_circle_mask, point_center, small_radii, Scalar(255), 2);
+    circle(big_circle_mask, point_center_, big_radii_, Scalar(255), 2);
+    circle(small_circle_mask, point_center_, small_radii_, Scalar(255), 2);
     DBG_WRITE_IMG("contour_edge_point_0_big_circle_mask.jpg", big_circle_mask);
     DBG_WRITE_IMG("contour_edge_point_1_small_circle_mask.jpg", small_circle_mask);
     for (unsigned int i = 0; i < cnts.size(); i++)
@@ -262,7 +262,7 @@ bool Gauge::ContourEdgePoint(const Mat &img, Point &edge_point) const
             map<double, Point> distances;
             for (auto p : cnts.at(i))
             {
-                distances.emplace(EuclidianDistance(point_center, p), p);
+                distances.emplace(EuclidianDistance(point_center_, p), p);
             }
             // Maps sort the largest key values at the end
             edge_point = distances.rbegin()->second;
