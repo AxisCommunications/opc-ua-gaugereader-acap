@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2024, Axis Communications AB, Lund, Sweden
+ * Copyright (C) 2025, Axis Communications AB, Lund, Sweden
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,6 @@
  * limitations under the License.
  */
 
-#include <axparameter.h>
 #include <utility>
 
 #include <mutex>
@@ -27,6 +26,7 @@
 #include "Gauge.hpp"
 #include "ImageProvider.hpp"
 #include "OpcUaServer.hpp"
+#include "ParamHandler.hpp"
 #include "common.hpp"
 
 using namespace cv;
@@ -36,10 +36,6 @@ static GMainLoop *loop = nullptr;
 
 static mutex mtx;
 
-static bool clockwise;
-static Point center_point;
-static Point min_point;
-static Point max_point;
 static Gauge *gauge = nullptr;
 static OpcUaServer opcuaserver;
 
@@ -48,100 +44,25 @@ static Mat nv12_mat;
 static Mat gray_mat;
 
 static DynamicStringHandler *dynstr_handler = nullptr;
-static guint8 dynstr_nbr = 0;
+static ParamHandler *param_handler = nullptr;
 
-static gchar *get_param(AXParameter &axparameter, const gchar &name)
+static void restart_opcuaserver(const guint32 port)
 {
-    GError *error = nullptr;
-    gchar *value = nullptr;
-    if (!ax_parameter_get(&axparameter, &name, &value, &error))
+    mtx.lock();
+    if (opcuaserver.IsRunning())
     {
-        LOG_E("%s/%s: failed to get %s parameter", __FILE__, __FUNCTION__, &name);
-        if (nullptr != error)
-        {
-            LOG_E("%s/%s: %s", __FILE__, __FUNCTION__, error->message);
-            g_error_free(error);
-        }
-        return nullptr;
+        opcuaserver.ShutDownServer();
     }
-    LOG_I("Got %s value: %s", &name, value);
-    return value;
-}
-
-static gboolean get_param_int(AXParameter &axparameter, const gchar &name, int &val)
-{
-    auto valuestr = get_param(axparameter, name);
-    if (nullptr == valuestr)
+    if (!opcuaserver.LaunchServer(port))
     {
-        return FALSE;
-    }
-    val = atoi(valuestr);
-    g_free(valuestr);
-    return TRUE;
-}
-
-static void update_local_param(const gchar &name, const uint32_t val)
-{
-    // Parameters that do not change the Gauge reader go here
-    if (0 == strncmp("port", &name, 4))
-    {
-        if (opcuaserver.IsRunning())
-        {
-            opcuaserver.ShutDownServer();
-        }
-        if (!opcuaserver.LaunchServer(val))
-        {
-            LOG_E("%s/%s: Failed to launch OPC UA server", __FILE__, __FUNCTION__);
-            assert(false);
-        }
-        return;
-    }
-    else if (0 == strncmp("DynamicStringNumber", &name, 19))
-    {
-        dynstr_nbr = val;
-        if (nullptr != dynstr_handler)
-        {
-            dynstr_handler->SetStrNumber(dynstr_nbr);
-        }
-        return;
-    }
-
-    // The following parameters trigger recalibration of the Gauge
-    if (0 == strncmp("cloc", &name, 4))
-    {
-        clockwise = (1 == val);
-    }
-    else if (0 == strncmp("centerX", &name, 7))
-    {
-        center_point.x = val;
-    }
-    else if (0 == strncmp("centerY", &name, 7))
-    {
-        center_point.y = val;
-    }
-    else if (0 == strncmp("minX", &name, 4))
-    {
-        min_point.x = val;
-    }
-    else if (0 == strncmp("minY", &name, 4))
-    {
-        min_point.y = val;
-    }
-    else if (0 == strncmp("maxX", &name, 4))
-    {
-        max_point.x = val;
-    }
-    else if (0 == strncmp("maxY", &name, 4))
-    {
-        max_point.y = val;
-    }
-    else
-    {
-        LOG_E("%s/%s: FAILED to act on param %s", __FILE__, __FUNCTION__, &name);
+        LOG_E("%s/%s: Failed to launch OPC UA server", __FILE__, __FUNCTION__);
         assert(false);
     }
+    mtx.unlock();
+}
 
-    // Recalibrate gauge at next frame
+static void replace_gauge()
+{
     mtx.lock();
     if (nullptr != gauge)
     {
@@ -151,53 +72,12 @@ static void update_local_param(const gchar &name, const uint32_t val)
     mtx.unlock();
 }
 
-static void param_callback(const gchar *name, const gchar *value, void *data)
+static void set_dynstr_nbr(const guint8 port)
 {
-    assert(nullptr != name);
-    assert(nullptr != value);
-    (void)data;
-    if (nullptr == value)
-    {
-        LOG_E("%s/%s: Unexpected nullptr value for %s", __FILE__, __FUNCTION__, name);
-        return;
-    }
-
-    LOG_I("Update for parameter %s (%s)", name, value);
-    auto lastdot = strrchr(name, '.');
-    assert(nullptr != lastdot);
-    assert(1 < strlen(name) - strlen(lastdot));
-    update_local_param(lastdot[1], atoi(value));
-}
-
-static gboolean setup_param(AXParameter &axparameter, const gchar *name, AXParameterCallback callbackfn)
-{
-    GError *error = nullptr;
-
-    assert(nullptr != name);
-    assert(nullptr != callbackfn);
-
-    if (!ax_parameter_register_callback(&axparameter, name, callbackfn, &axparameter, &error))
-    {
-        LOG_E("%s/%s: failed to register %s callback", __FILE__, __FUNCTION__, name);
-        if (nullptr != error)
-        {
-            LOG_E("%s/%s: %s", __FILE__, __FUNCTION__, error->message);
-            g_error_free(error);
-        }
-        return FALSE;
-    }
-
-    int val;
-    if (!get_param_int(axparameter, *name, val))
-    {
-        LOG_E("%s/%s: Failed to get initial value for %s", __FILE__, __FUNCTION__, name);
-        return FALSE;
-    }
-    update_local_param(*name, val);
-    LOG_I("%s/%s: Set up parameter %s", __FILE__, __FUNCTION__, name);
-    usleep(50000); // mitigate timing issue in parameter handling
-
-    return TRUE;
+    assert(nullptr != dynstr_handler);
+    mtx.lock();
+    dynstr_handler->SetStrNumber(port);
+    mtx.unlock();
 }
 
 static gboolean imageanalysis(gpointer data)
@@ -225,7 +105,13 @@ static gboolean imageanalysis(gpointer data)
     if (nullptr == gauge)
     {
         LOG_I("%s/%s: Set up new Gauge", __FILE__, __FUNCTION__);
-        gauge = new Gauge(gray_mat, center_point, min_point, max_point, clockwise);
+        assert(nullptr != param_handler);
+        gauge = new Gauge(
+            gray_mat,
+            param_handler->GetCenterPoint(),
+            param_handler->GetMinPoint(),
+            param_handler->GetMaxPoint(),
+            param_handler->GetClockwise());
     }
     assert(nullptr != gauge);
     double value = gauge->ComputeGaugeValue(gray_mat);
@@ -340,10 +226,7 @@ static bool initializeSignalHandler(void)
 int main(int argc, char *argv[])
 {
     (void)argc;
-    (void)argv;
 
-    GError *error = nullptr;
-    AXParameter *axparameter = nullptr;
     auto app_name = basename(argv[0]);
     openlog(app_name, LOG_PID | LOG_CONS, LOG_USER);
 
@@ -354,40 +237,18 @@ int main(int argc, char *argv[])
         goto exit;
     }
 
+    // Init dynamic string handling
+    dynstr_handler = new DynamicStringHandler();
+
     // Init parameter handling (will also launch OPC UA server)
-    LOG_I("Init parameter handling ...");
-    axparameter = ax_parameter_new(app_name, &error);
-    if (nullptr != error)
+    LOG_I("Init parameter handling and launch OPC UA server ...");
+    param_handler = new ParamHandler(*app_name, restart_opcuaserver, replace_gauge, set_dynstr_nbr);
+    if (nullptr == param_handler)
     {
-        LOG_E("%s/%s: ax_parameter_new failed (%s)", __FILE__, __FUNCTION__, error->message);
-        g_error_free(error);
+        LOG_E("%s/%s: Failed to set up parameter handler and launch OPC UA server", __FILE__, __FUNCTION__);
         result = EXIT_FAILURE;
         goto exit;
     }
-    LOG_I("%s/%s: ax_parameter_new success", __FILE__, __FUNCTION__);
-    // clang-format off
-    if (!setup_param(*axparameter, "DynamicStringNumber", param_callback) ||
-        !setup_param(*axparameter, "centerX", param_callback) ||
-        !setup_param(*axparameter, "centerY", param_callback) ||
-        !setup_param(*axparameter, "clockwise", param_callback) ||
-        !setup_param(*axparameter, "maxX", param_callback) ||
-        !setup_param(*axparameter, "maxY", param_callback) ||
-        !setup_param(*axparameter, "minX", param_callback) ||
-        !setup_param(*axparameter, "minY", param_callback) ||
-        !setup_param(*axparameter, "port", param_callback))
-    // clang-format on
-    {
-        LOG_E("%s/%s: Failed to set up parameters", __FILE__, __FUNCTION__);
-        result = EXIT_FAILURE;
-        goto exit_param;
-    }
-    // Log retrieved param values
-    LOG_I("%s/%s: center: (%u, %u)", __FILE__, __FUNCTION__, center_point.x, center_point.y);
-    LOG_I("%s/%s: min: (%u, %u)", __FILE__, __FUNCTION__, min_point.x, min_point.y);
-    LOG_I("%s/%s: max: (%u, %u)", __FILE__, __FUNCTION__, max_point.x, max_point.y);
-
-    // Init dynamic string handling
-    dynstr_handler = new DynamicStringHandler(dynstr_nbr);
 
     // Initialize image analysis
     if (!initimageanalysis())
@@ -420,10 +281,10 @@ int main(int argc, char *argv[])
     opcuaserver.ShutDownServer();
 
 exit_param:
-    delete dynstr_handler;
-    ax_parameter_free(axparameter);
+    delete param_handler;
 
 exit:
+    delete dynstr_handler;
     LOG_I("Exiting!");
     closelog();
 

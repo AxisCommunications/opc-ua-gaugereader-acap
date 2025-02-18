@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2024, Axis Communications AB, Lund, Sweden
+ * Copyright (C) 2025, Axis Communications AB, Lund, Sweden
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -91,7 +91,13 @@ Gauge::Gauge(
     DBG_WRITE_IMG("mask_1_small.png", small_mask_);
     DBG_WRITE_IMG("mask_2_global.png", global_mask_);
 
-    LOG_I("%s/%s: img size: (%u, %u)", __FILE__, __FUNCTION__, img_size_.width, img_size_.height);
+    LOG_I(
+        "%s/%s: %sclockwise, img size: (%u, %u)",
+        __FILE__,
+        __FUNCTION__,
+        clockwise_ ? "" : "counter",
+        img_size_.width,
+        img_size_.height);
 }
 
 Gauge::~Gauge()

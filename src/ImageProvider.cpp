@@ -1,5 +1,5 @@
 /**
- * Copyright (C) 2024, Axis Communications AB, Lund, Sweden
+ * Copyright (C) 2025, Axis Communications AB, Lund, Sweden
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -166,7 +166,7 @@ bool ImageProvider::ChooseStreamResolution(
     {
         VdoResolution *res = &set->resolutions[i];
         assert(nullptr != res);
-        LOG_E("%s/%s: resolution %zu: (%ux%u)", __FILE__, __FUNCTION__, i, res->width, res->height);
+        LOG_I("%s/%s: resolution %zu: (%ux%u)", __FILE__, __FUNCTION__, i, res->width, res->height);
         if ((res->width >= reqWidth) && (res->height >= reqHeight))
         {
             unsigned int area = res->width * res->height;
