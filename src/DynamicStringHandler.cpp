@@ -27,7 +27,7 @@ using namespace std::chrono;
 static size_t append_to_string_callback(char *ptr, size_t size, size_t nmemb, string *response)
 {
     assert(nullptr != response);
-    auto totalsize = size * nmemb;
+    const auto totalsize = size * nmemb;
     response->append(ptr, totalsize);
 
     return totalsize;
@@ -44,9 +44,9 @@ DynamicStringHandler::DynamicStringHandler(const guint8 nbr)
     assert(nullptr != curl_);
 
     const gchar *user = "example-vapix-user";
-    auto credentials = RetrieveVapixCredentials(*user);
+    const auto credentials = RetrieveVapixCredentials(*user);
 
-    auto curl_init =
+    const auto curl_init =
         (CURLE_OK == curl_easy_setopt(curl_, CURLOPT_HTTPAUTH, (long)(CURLAUTH_DIGEST | CURLAUTH_BASIC)) &&
          CURLE_OK == curl_easy_setopt(curl_, CURLOPT_NOPROGRESS, 2L) &&
          CURLE_OK == curl_easy_setopt(curl_, CURLOPT_USERPWD, credentials.c_str()) &&
@@ -74,14 +74,14 @@ void DynamicStringHandler::SetStrNumber(const guint8 newnbr)
 void DynamicStringHandler::UpdateStr(const double value)
 {
     // We don't need to update too frequently
-    auto nowtime = steady_clock::now();
+    const auto nowtime = steady_clock::now();
     if (1 > duration_cast<seconds>(nowtime - lastupdate_).count())
     {
         return;
     }
 
-    auto url = "http://127.0.0.12/axis-cgi/dynamicoverlay.cgi?action=settext&text_index=" + to_string(nbr_) +
-               "&text=" + to_string(value);
+    const auto url = "http://127.0.0.12/axis-cgi/dynamicoverlay.cgi?action=settext&text_index=" + to_string(nbr_) +
+                     "&text=" + to_string(value);
     if (!VapixGet(url))
     {
         LOG_E("%s/%s: Failed to update dynamic string", __FILE__, __FUNCTION__);
@@ -105,7 +105,7 @@ string DynamicStringHandler::RetrieveVapixCredentials(const char &username) cons
     const char *interface_name = "com.axis.HTTPConf1.VAPIXServiceAccounts1";
     const char *method_name = "GetCredentials";
 
-    auto result = g_dbus_connection_call_sync(
+    const auto result = g_dbus_connection_call_sync(
         connection,
         bus_name,
         object_path,
@@ -146,7 +146,7 @@ gboolean DynamicStringHandler::VapixGet(const string &url)
         return FALSE;
     }
 
-    auto res = curl_easy_perform(curl_);
+    const auto res = curl_easy_perform(curl_);
     if (res != CURLE_OK)
     {
         LOG_E("%s/%s: curl fail %d '%s''", __FILE__, __FUNCTION__, res, curl_easy_strerror(res));

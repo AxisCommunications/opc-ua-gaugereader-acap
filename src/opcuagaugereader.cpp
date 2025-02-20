@@ -227,7 +227,7 @@ int main(int argc, char *argv[])
 {
     (void)argc;
 
-    auto app_name = basename(argv[0]);
+    const auto app_name = basename(argv[0]);
     openlog(app_name, LOG_PID | LOG_CONS, LOG_USER);
 
     int result = EXIT_SUCCESS;
@@ -242,7 +242,7 @@ int main(int argc, char *argv[])
 
     // Init parameter handling (will also launch OPC UA server)
     LOG_I("Init parameter handling and launch OPC UA server ...");
-    param_handler = new ParamHandler(*app_name, restart_opcuaserver, replace_gauge, set_dynstr_nbr);
+    param_handler = new ParamHandler(app_name, restart_opcuaserver, replace_gauge, set_dynstr_nbr);
     if (nullptr == param_handler)
     {
         LOG_E("%s/%s: Failed to set up parameter handler and launch OPC UA server", __FILE__, __FUNCTION__);

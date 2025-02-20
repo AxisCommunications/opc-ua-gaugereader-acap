@@ -23,43 +23,44 @@ class ParamHandler
 {
   public:
     ParamHandler(
-        const gchar &app_name,
-        void (*restart_opcuaserver)(unsigned int),
-        void (*replace_gauge)(),
-        void (*set_dynstr_nbr)(const guint8));
+        const gchar *app_name,
+        void (*RestartOpcuaserver)(unsigned int),
+        void (*ReplaceGauge)(),
+        void (*SetDynstrNbr)(const guint8));
     ~ParamHandler();
     static void param_callback(const gchar *name, const gchar *value, void *data);
 
-    gboolean GetClockwise()
+    gboolean GetClockwise() const
     {
         return clockwise_;
     };
-    cv::Point GetCenterPoint()
+    cv::Point GetCenterPoint() const
     {
         return center_point_;
     };
-    cv::Point GetMinPoint()
+    cv::Point GetMinPoint() const
     {
         return min_point_;
     };
-    cv::Point GetMaxPoint()
+    cv::Point GetMaxPoint() const
     {
         return max_point_;
     };
 
   private:
-    gchar *get_param(const gchar &name);
-    gboolean get_param_int(const gchar &name, int &val);
-    void update_local_param(const gchar &name, const guint32 val);
-    gboolean setup_param(const gchar *name, AXParameterCallback callbackfn);
+    gchar *GetParam(const gchar &name) const;
+    gboolean GetParam(const gchar &name, gint32 &val) const;
+    void UpdateLocalParam(const gchar &name, const guint32 val);
+    gboolean SetupParam(const gchar *name, AXParameterCallback callbackfn);
 
-    void (*restart_opcuaserver_)(const guint32);
-    void (*replace_gauge_)();
-    void (*set_dynstr_nbr_)(const guint8);
+    void (*RestartOpcuaserver_)(const guint32);
+    void (*ReplaceGauge_)();
+    void (*SetDynstrNbr_)(const guint8);
 
     AXParameter *axparameter_;
     gboolean clockwise_;
     cv::Point center_point_;
     cv::Point min_point_;
     cv::Point max_point_;
+    mutable GMutex mtx_;
 };
