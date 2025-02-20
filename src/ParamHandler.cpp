@@ -22,16 +22,17 @@
 using namespace cv;
 
 ParamHandler::ParamHandler(
-    const gchar &app_name,
-    void (*restart_opcuaserver)(const guint32),
-    void (*replace_gauge)(),
-    void (*set_dynstr_nbr)(const guint8))
-    : restart_opcuaserver_(restart_opcuaserver), replace_gauge_(replace_gauge), set_dynstr_nbr_(set_dynstr_nbr),
+    const gchar *app_name,
+    void (*RestartOpcuaserver)(const guint32),
+    void (*ReplaceGauge)(),
+    void (*SetDynstrNbr)(const guint8))
+    : RestartOpcuaserver_(RestartOpcuaserver), ReplaceGauge_(ReplaceGauge), SetDynstrNbr_(SetDynstrNbr),
       axparameter_(nullptr), clockwise_(true), center_point_(0, 0), min_point_(0, 0), max_point_(0, 0)
 {
     LOG_I("Init parameter handling ...");
+    g_mutex_init(&mtx_);
     GError *error = nullptr;
-    axparameter_ = ax_parameter_new(&app_name, &error);
+    axparameter_ = ax_parameter_new(app_name, &error);
     if (nullptr != error)
     {
         LOG_E("%s/%s: ax_parameter_new failed (%s)", __FILE__, __FUNCTION__, error->message);
@@ -41,20 +42,21 @@ ParamHandler::ParamHandler(
     assert(nullptr != axparameter_);
     // clang-format off
     LOG_I("Setting up parameters ...");
-    if (!setup_param("DynamicStringNumber", param_callback) ||
-        !setup_param("centerX", param_callback) ||
-        !setup_param("centerY", param_callback) ||
-        !setup_param("clockwise", param_callback) ||
-        !setup_param("maxX", param_callback) ||
-        !setup_param("maxY", param_callback) ||
-        !setup_param("minX", param_callback) ||
-        !setup_param("minY", param_callback) ||
-        !setup_param("port", param_callback))
+    if (!SetupParam("DynamicStringNumber", param_callback) ||
+        !SetupParam("centerX", param_callback) ||
+        !SetupParam("centerY", param_callback) ||
+        !SetupParam("clockwise", param_callback) ||
+        !SetupParam("maxX", param_callback) ||
+        !SetupParam("maxY", param_callback) ||
+        !SetupParam("minX", param_callback) ||
+        !SetupParam("minY", param_callback) ||
+        !SetupParam("port", param_callback))
     // clang-format on
     {
         LOG_E("%s/%s: Failed to set up parameters", __FILE__, __FUNCTION__);
         assert(FALSE);
     }
+
     // Log retrieved param values
     LOG_I("%s/%s: center: (%u, %u)", __FILE__, __FUNCTION__, center_point_.x, center_point_.y);
     LOG_I("%s/%s: min: (%u, %u)", __FILE__, __FUNCTION__, min_point_.x, min_point_.y);
@@ -63,10 +65,12 @@ ParamHandler::ParamHandler(
 
 ParamHandler::~ParamHandler()
 {
+    assert(nullptr != axparameter_);
     ax_parameter_free(axparameter_);
+    g_mutex_clear(&mtx_);
 }
 
-gchar *ParamHandler::get_param(const gchar &name)
+gchar *ParamHandler::GetParam(const gchar &name) const
 {
     assert(nullptr != axparameter_);
     GError *error = nullptr;
@@ -85,9 +89,9 @@ gchar *ParamHandler::get_param(const gchar &name)
     return value;
 }
 
-gboolean ParamHandler::get_param_int(const gchar &name, int &val)
+gboolean ParamHandler::GetParam(const gchar &name, gint32 &val) const
 {
-    auto valuestr = get_param(name);
+    const auto valuestr = GetParam(name);
     if (nullptr == valuestr)
     {
         return FALSE;
@@ -97,23 +101,24 @@ gboolean ParamHandler::get_param_int(const gchar &name, int &val)
     return TRUE;
 }
 
-void ParamHandler::update_local_param(const gchar &name, const guint32 val)
+void ParamHandler::UpdateLocalParam(const gchar &name, const guint32 val)
 {
     // Parameters that do not change the Gauge reader go here
     if (0 == strncmp("port", &name, 4))
     {
-        assert(nullptr != restart_opcuaserver_);
-        restart_opcuaserver_(val);
+        assert(nullptr != RestartOpcuaserver_);
+        RestartOpcuaserver_(val);
         return;
     }
     else if (0 == strncmp("DynamicStringNumber", &name, 19))
     {
-        assert(nullptr != set_dynstr_nbr_);
-        set_dynstr_nbr_(val);
+        assert(nullptr != SetDynstrNbr_);
+        SetDynstrNbr_(val);
         return;
     }
 
     // The following parameters trigger recalibration of the Gauge
+    g_mutex_lock(&mtx_);
     if (0 == strncmp("cloc", &name, 4))
     {
         clockwise_ = (1 == val);
@@ -147,10 +152,11 @@ void ParamHandler::update_local_param(const gchar &name, const guint32 val)
         LOG_E("%s/%s: FAILED to act on param %s", __FILE__, __FUNCTION__, &name);
         assert(false);
     }
+    g_mutex_unlock(&mtx_);
 
     // Recalibrate gauge at next frame
-    assert(nullptr != replace_gauge_);
-    replace_gauge_();
+    assert(nullptr != ReplaceGauge_);
+    ReplaceGauge_();
 }
 
 void ParamHandler::param_callback(const gchar *name, const gchar *value, void *data)
@@ -165,13 +171,13 @@ void ParamHandler::param_callback(const gchar *name, const gchar *value, void *d
     }
 
     LOG_I("Update for parameter %s (%s)", name, value);
-    auto lastdot = strrchr(name, '.');
+    const auto lastdot = strrchr(name, '.');
     assert(nullptr != lastdot);
     assert(1 < strlen(name) - strlen(lastdot));
-    param_handler->update_local_param(lastdot[1], atoi(value));
+    param_handler->UpdateLocalParam(lastdot[1], atoi(value));
 }
 
-gboolean ParamHandler::setup_param(const gchar *name, AXParameterCallback callbackfn)
+gboolean ParamHandler::SetupParam(const gchar *name, AXParameterCallback callbackfn)
 {
     assert(nullptr != axparameter_);
     GError *error = nullptr;
@@ -190,13 +196,13 @@ gboolean ParamHandler::setup_param(const gchar *name, AXParameterCallback callba
         return FALSE;
     }
 
-    int val;
-    if (!get_param_int(*name, val))
+    gint32 val;
+    if (!GetParam(*name, val))
     {
         LOG_E("%s/%s: Failed to get initial value for %s", __FILE__, __FUNCTION__, name);
         return FALSE;
     }
-    update_local_param(*name, val);
+    UpdateLocalParam(*name, val);
     LOG_I("%s/%s: Set up parameter %s", __FILE__, __FUNCTION__, name);
     usleep(50000); // mitigate timing issue in parameter handling
 

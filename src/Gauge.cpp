@@ -46,14 +46,14 @@ Gauge::Gauge(
     angle_min_ = GetDegree(point_center, point_min);
     angle_max_ = GetDegree(point_center, point_max);
     angle_min_max_ = AngleDifference(angle_min_, angle_max_);
-    auto d1 = EuclidianDistance(point_center, point_min);
-    auto d2 = EuclidianDistance(point_center, point_max);
+    const auto d1 = EuclidianDistance(point_center, point_min);
+    const auto d2 = EuclidianDistance(point_center, point_max);
     unsigned int radii = round((d1 + d2) / 2);
     big_radii_ = round(radii * 0.75);
     small_radii_ = round(radii / 3);
 
     // Crop to avoid processing pixels outside Gauge area
-    auto crop_radii = max(d1, d2);
+    const auto crop_radii = max(d1, d2);
     int max_x = point_center.x + crop_radii;
     int max_y = point_center.y + crop_radii;
     int min_x = point_center.x - crop_radii;
@@ -144,11 +144,10 @@ double Gauge::ComputeGaugeValue(const Mat &img) const
     }
 
     // Calculate and return value (percent)
-    auto angle_pointer = GetDegree(point_center_, pointer_edge);
-    auto min_pointer_angle = AngleDifference(angle_min_, angle_pointer);
-    if (350 < min_pointer_angle && 360 > min_pointer_angle)
+    const auto angle_pointer = GetDegree(point_center_, pointer_edge);
+    const auto min_pointer_angle = AngleDifference(angle_min_, angle_pointer);
+    if (360 < min_pointer_angle && 360 > min_pointer_angle)
     {
-        // pointer slightly below min => minimum value
         return 0;
     }
     else if (min_pointer_angle > angle_min_max_)
