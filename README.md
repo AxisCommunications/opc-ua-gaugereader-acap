@@ -51,13 +51,19 @@ For example:
 
 The build process uses the
 [ACAP SDK build container](https://hub.docker.com/r/axisecp/acap-sdk)
-and Docker.
+and Docker or Podman.
 
-The Docker commands are integrated in the [Makefile](Makefile), so if you have
-Docker and `make` on your computer all you need to do is:
+The Docker and Podman commands are integrated in the [Makefile](Makefile), so
+if you have Docker or Podman and `make` on your computer all you need to do is:
 
 ```sh
 make dockerbuild
+```
+
+or
+
+```sh
+make podmanbuild
 ```
 
 or perhaps build in parallel:
@@ -66,13 +72,28 @@ or perhaps build in parallel:
 make -j dockerbuild
 ```
 
+alternatively
+
+```sh
+make -j podmanbuild
+```
+
 If you do have Docker but no `make` on your system:
 
 ```sh
 # 32-bit ARM, e.g. ARTPEC-6- and ARTPEC-7-based devices
 DOCKER_BUILDKIT=1 docker build --build-arg ARCH=armv7hf -o type=local,dest=. .
-# 64-bit ARM, e.g. ARTPEC-8-based devices
+# 64-bit ARM, e.g. ARTPEC-8 and ARTPEC-9-based devices
 DOCKER_BUILDKIT=1 docker build --build-arg ARCH=aarch64 -o type=local,dest=. .
+```
+
+If you do have Podman but no `make` on your system:
+
+```sh
+# 32-bit ARM, e.g. ARTPEC-6- and ARTPEC-7-based devices
+podman build --build-arg ARCH=armv7hf -o type=local,dest=. .
+# 64-bit ARM, e.g. ARTPEC-8 and ARTPEC-9-based devices
+podman build --build-arg ARCH=aarch64 -o type=local,dest=. .
 ```
 
 ## Debug
@@ -90,9 +111,12 @@ or
 ```sh
 # 32-bit ARM, e.g. ARTPEC-6- and ARTPEC-7-based devices
 DOCKER_BUILDKIT=1 docker build --build-arg DEBUG_WRITE=y --build-arg ARCH=armv7hf -o type=local,dest=. .
-# 64-bit ARM, e.g. ARTPEC-8-based devices
+# 64-bit ARM, e.g. ARTPEC-8 and ARTPEC-9-based devices
 DOCKER_BUILDKIT=1 docker build --build-arg DEBUG_WRITE=y --build-arg ARCH=aarch64 -o type=local,dest=. .
 ```
+
+> [!TIP]
+> For Podman, use the same commands using `podman` instead of `docker`.
 
 ## Setup
 

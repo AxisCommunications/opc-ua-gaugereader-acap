@@ -1,6 +1,7 @@
 TARGET = opcuagaugereader
 OBJECTS = $(wildcard $(CURDIR)/src/*.cpp)
 RM ?= rm -f
+ARCHS = aarch64 armv7hf
 
 SDK_PKGS = gio-2.0 gio-unix-2.0 vdostream libcurl axparameter
 OWN_PKGS = opencv4 open62541
@@ -21,7 +22,7 @@ CXXFLAGS += -DDEBUG_WRITE
 DOCKER_ARGS += --build-arg DEBUG_WRITE=$(DEBUG_WRITE)
 endif
 
-.PHONY: all %.eap dockerbuild clean
+.PHONY: all %.docker %.podman dockerbuild podmanbuild clean
 
 all: $(TARGET)
 
@@ -29,11 +30,12 @@ $(TARGET): $(OBJECTS)
 	$(CXX) $(CXXFLAGS) $(LDFLAGS) $(LDLIBS) $^ -o $@ && \
 	$(STRIP) --strip-unneeded $@
 
-# docker build container targets
-%.eap:
-	DOCKER_BUILDKIT=1 docker build $(DOCKER_ARGS) --build-arg ARCH=$(*F) -o type=local,dest=. "$(CURDIR)"
+# Container build targets
+%.docker %.podman:
+	DOCKER_BUILDKIT=1 $(patsubst .%,%,$(suffix $@)) build --build-arg ARCH=$(*F) -o type=local,dest=. "$(CURDIR)"
 
-dockerbuild: armv7hf.eap aarch64.eap
+dockerbuild: $(addsuffix .docker,$(ARCHS))
+podmanbuild: $(addsuffix .podman,$(ARCHS))
 
 clean:
 	$(RM) $(TARGET) *.eap* *_LICENSE.txt pa*.conf
