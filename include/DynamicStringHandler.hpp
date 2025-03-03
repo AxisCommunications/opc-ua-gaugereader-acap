@@ -31,7 +31,9 @@ class DynamicStringHandler
 {
   public:
     DynamicStringHandler(const guint8 nbr);
-    DynamicStringHandler() : DynamicStringHandler(1){};
+    DynamicStringHandler() : DynamicStringHandler(1)
+    {
+    }
     ~DynamicStringHandler();
     void SetStrNumber(const guint8 newnbr);
     void UpdateStr(const double value);
