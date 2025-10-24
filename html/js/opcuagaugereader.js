@@ -1,3 +1,19 @@
+/**
+ * Copyright (C) 2025, Axis Communications AB, Lund, Sweden
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
 const w = 640;
 const h = 360;
 const msize = 5;
@@ -7,9 +23,10 @@ const State = {
 	Min: Symbol(2),
 	Max: Symbol(3)
 }
+const paramappname = 'Opcuagaugereader';
 const parambaseurl = '/axis-cgi/param.cgi?action=';
-const paramgeturl = parambaseurl + 'list&group=opcuagaugereader.';
-const paramseturl = parambaseurl + 'update&opcuagaugereader.';
+const paramgeturl = `${parambaseurl}list&group=${paramappname}.`;
+const paramseturl = `${parambaseurl}update&${paramappname}.`;
 var points = {};
 points['centerX'] = 0;
 points['centerY'] = 0;
@@ -19,7 +36,7 @@ points['maxX'] = 0;
 points['maxY'] = 0;
 
 function getPointText(param) {
-	return param + ': (' + points[param + 'X'] + ', ' + points[param + 'Y'] + ')';
+	return `${param}: (${points[`${param}X`]}, ${points[`${param}Y`]})`;
 }
 
 function drawMarker(X, Y, color) {
@@ -31,7 +48,7 @@ function drawMarker(X, Y, color) {
 	ctx.arc(X, Y, msize, 1, 2 * Math.PI, false);
 	ctx.stroke();
 	document.getElementById("values").textContent =
-		getPointText('center') + ' ' + getPointText('min') + ' ' + getPointText('max');
+		`${getPointText('center')} ${getPointText('min')} ${getPointText('max')}`;
 }
 
 function drawCenter() {
@@ -54,25 +71,35 @@ function drawDefaultPoints() {
 }
 
 function getCurrentValue(param) {
-	$.get(paramgeturl + param)
-		.done(function(data) {
-			points[param] = data.split('=')[1];
-			console.log('Got ' + param + ' value ' + points[param]);
-			drawDefaultPoints();
+	return fetch(`${paramgeturl}${param}`)
+		.then(response => {
+			if (!response.ok) {
+				throw new Error(`Getting parameter value, the network response was not ok: ${response.status} ${response.statusText}`);
+			}
+			return response.text();
 		})
-		.fail(function(data) {
-			alert('FAILED to get ' + param);
+		.then(data => {
+			var value = data.split('=')[1];
+			console.log(`Got ${param} value ${value}`);
+			return Number(value);
+		})
+		.catch(error => {
+			alert(`FAILED to get ${param}`);
+			throw error;
 		});
 }
 
 function setParam(param, value) {
 	points[param] = value;
-	$.get(paramseturl + param + '=' + value)
-		.done(function(data) {
-			console.log('Set ' + param + ' to ' + value);
+	fetch(`${paramseturl}${param}=${value}`)
+		.then(response => {
+			if (!response.ok) {
+				throw new Error(`Setting parameter value, the network response was not ok: ${response.status} ${response.statusText}`);
+			}
+			console.log(`Set ${param} to ${value}`);
 		})
-		.fail(function(jqXHR, textStatus, errorThrown) {
-			alert('FAILED to set ' + param);
+		.catch(error => {
+			alert(`FAILED to set ${param}: ${error.message}`);
 		});
 }
 
@@ -129,7 +156,7 @@ var draw = document.getElementById('draw');
 var infoTxt = document.getElementById('info');
 preview.width = preview.style.width = draw.width = w;
 preview.height = preview.style.height = draw.height = h;
-preview.src = '/axis-cgi/mjpg/video.cgi?resolution=' + w + 'x' + h;
+preview.src = `/axis-cgi/mjpg/video.cgi?resolution=${w}x${h}`;
 var ctx = draw.getContext('2d');
 initWithCurrentValues();
 handleCoord(0, 0);
