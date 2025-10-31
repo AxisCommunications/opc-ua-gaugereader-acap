@@ -16,6 +16,7 @@
 
 #include <assert.h>
 #include <cstdlib>
+#include <format>
 #include <gio/gio.h>
 
 #include "DynamicStringHandler.hpp"
@@ -71,7 +72,7 @@ void DynamicStringHandler::SetStrNumber(const guint8 newnbr)
     LOG_I("Now using dynamic string number %u", newnbr);
 }
 
-void DynamicStringHandler::UpdateStr(const double value)
+void DynamicStringHandler::UpdateStr(const double value, const gint8 precision)
 {
     // We don't need to update too frequently
     const auto nowtime = steady_clock::now();
@@ -80,8 +81,9 @@ void DynamicStringHandler::UpdateStr(const double value)
         return;
     }
 
+    const auto value_str = -1 < precision ? std::format("{:.{}f}", value, precision) : to_string(value);
     const auto url = "http://127.0.0.12/axis-cgi/dynamicoverlay.cgi?action=settext&text_index=" + to_string(nbr_) +
-                     "&text=" + to_string(value);
+                     "&text=" + value_str;
     if (!VapixGet(url))
     {
         LOG_E("%s/%s: Failed to update dynamic string", __FILE__, __FUNCTION__);

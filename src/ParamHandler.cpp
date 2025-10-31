@@ -27,7 +27,8 @@ ParamHandler::ParamHandler(
     void (*ReplaceGauge)(),
     void (*SetDynstrNbr)(const guint8))
     : RestartOpcuaserver_(RestartOpcuaserver), ReplaceGauge_(ReplaceGauge), SetDynstrNbr_(SetDynstrNbr),
-      axparameter_(nullptr), clockwise_(true), center_point_(0, 0), min_point_(0, 0), max_point_(0, 0)
+      axparameter_(nullptr), clockwise_(true), round_to_decimals_(-1), center_point_(0, 0), min_point_(0, 0),
+      max_point_(0, 0)
 {
     LOG_I("Init parameter handling ...");
     g_mutex_init(&mtx_);
@@ -50,7 +51,8 @@ ParamHandler::ParamHandler(
         !SetupParam("maxY", param_callback) ||
         !SetupParam("minX", param_callback) ||
         !SetupParam("minY", param_callback) ||
-        !SetupParam("port", param_callback))
+        !SetupParam("port", param_callback) ||
+        !SetupParam("RoundToDecimals", param_callback))
     // clang-format on
     {
         LOG_E("%s/%s: Failed to set up parameters", __FILE__, __FUNCTION__);
@@ -114,6 +116,13 @@ void ParamHandler::UpdateLocalParam(const gchar &name, const guint32 val)
     {
         assert(nullptr != SetDynstrNbr_);
         SetDynstrNbr_(val);
+        return;
+    }
+    else if (0 == strncmp("RoundToDecimals", &name, 15))
+    {
+        g_mutex_lock(&mtx_);
+        round_to_decimals_ = static_cast<guint8>(val);
+        g_mutex_unlock(&mtx_);
         return;
     }
 

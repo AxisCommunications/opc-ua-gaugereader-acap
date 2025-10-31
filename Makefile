@@ -6,7 +6,7 @@ ARCHS = aarch64 armv7hf
 SDK_PKGS = gio-2.0 gio-unix-2.0 vdostream libcurl axparameter
 OWN_PKGS = opencv4 open62541
 
-CXXFLAGS += -Os -pipe -std=c++11 -Wall -Werror -Wextra
+CXXFLAGS += -Os -pipe -std=c++20 -Wall -Werror -Wextra
 CXXFLAGS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --cflags-only-I $(SDK_PKGS))
 CXXFLAGS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) PKG_CONFIG_SYSROOT_DIR= pkg-config --cflags-only-I $(OWN_PKGS))
 LDLIBS += $(shell PKG_CONFIG_PATH=$(PKG_CONFIG_PATH) pkg-config --libs $(SDK_PKGS))

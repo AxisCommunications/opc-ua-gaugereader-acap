@@ -39,7 +39,7 @@ function getPointText(param) {
 	return `${param}: (${points[`${param}X`]}, ${points[`${param}Y`]})`;
 }
 
-function drawMarker(X, Y, color) {
+function drawMarker(X, Y, color, updateText) {
 	ctx.beginPath();
 	ctx.fillStyle = color;
 	ctx.strokeStyle = 'white';
@@ -47,27 +47,34 @@ function drawMarker(X, Y, color) {
 	ctx.fill();
 	ctx.arc(X, Y, msize, 1, 2 * Math.PI, false);
 	ctx.stroke();
-	document.getElementById("values").textContent =
-		`${getPointText('center')} ${getPointText('min')} ${getPointText('max')}`;
+
+	if (updateText) {
+	    updateTextDisplay();
+	}
 }
 
-function drawCenter() {
-	drawMarker(points['centerX'], points['centerY'], '#ff0033');
+function updateTextDisplay() {
+    document.getElementById("values").textContent =
+        `${getPointText('center')} ${getPointText('min')} ${getPointText('max')}`;
 }
 
-function drawMin() {
-	drawMarker(points['minX'], points['minY'], '#ffcc33');
+function drawCenter(updateText) {
+	drawMarker(points['centerX'], points['centerY'], '#ff0033', updateText);
 }
 
-function drawMax() {
-	drawMarker(points['maxX'], points['maxY'], '#ffcc33');
+function drawMin(updateText) {
+	drawMarker(points['minX'], points['minY'], '#ffcc33', updateText);
+}
+
+function drawMax(updateText) {
+	drawMarker(points['maxX'], points['maxY'], '#ffcc33', updateText);
 }
 
 function drawDefaultPoints() {
 	ctx.clearRect(0, 0, draw.width, draw.height);
-	drawMax();
-	drawCenter();
-	drawMin();
+	drawMax(false);
+	drawCenter(false);
+	drawMin(true);
 }
 
 function getCurrentValue(param) {
@@ -103,13 +110,13 @@ function setParam(param, value) {
 		});
 }
 
-function initWithCurrentValues() {
-	getCurrentValue('centerX');
-	getCurrentValue('centerY');
-	getCurrentValue('minX');
-	getCurrentValue('minY');
-	getCurrentValue('maxX');
-	getCurrentValue('maxY');
+async function initWithCurrentValues() {
+    points['centerX'] = await getCurrentValue('centerX');
+    points['centerY'] = await getCurrentValue('centerY');
+    points['minX'] = await getCurrentValue('minX');
+    points['minY'] = await getCurrentValue('minY');
+    points['maxX'] = await getCurrentValue('maxX');
+    points['maxY'] = await getCurrentValue('maxY');
 }
 
 function handleCoord(X, Y) {
@@ -118,21 +125,21 @@ function handleCoord(X, Y) {
 			setParam('centerX', X);
 			setParam('centerY', Y);
 			ctx.clearRect(0, 0, draw.width, draw.height);
-			drawCenter();
+			drawCenter(true);
 			curState = State.Min;
 			infoTxt.innerHTML = 'Please mark gauge minimum point';
 			break;
 		case State.Min:
 			setParam('minX', X);
 			setParam('minY', Y);
-			drawMin();
+			drawMin(true);
 			curState = State.Max;
 			infoTxt.innerHTML = 'Please mark gauge maximum point';
 			break;
 		case State.Max:
 			setParam('maxX', X);
 			setParam('maxY', Y);
-			drawMax();
+			drawMax(true);
 		default:
 			curState = State.Center;
 			infoTxt.innerHTML = 'Please mark gauge center point (starts new calibration)';
@@ -158,5 +165,8 @@ preview.width = preview.style.width = draw.width = w;
 preview.height = preview.style.height = draw.height = h;
 preview.src = `/axis-cgi/mjpg/video.cgi?resolution=${w}x${h}`;
 var ctx = draw.getContext('2d');
-initWithCurrentValues();
-handleCoord(0, 0);
+(async () => {
+    await initWithCurrentValues();
+    handleCoord(0, 0);
+    drawDefaultPoints();
+})();

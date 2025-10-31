@@ -46,6 +46,10 @@ class ParamHandler
     {
         return max_point_;
     };
+    gint8 GetRoundToDecimals() const
+    {
+        return round_to_decimals_;
+    };
 
   private:
     gchar *GetParam(const gchar &name) const;
@@ -59,6 +63,7 @@ class ParamHandler
 
     AXParameter *axparameter_;
     gboolean clockwise_;
+    gint8 round_to_decimals_;
     cv::Point center_point_;
     cv::Point min_point_;
     cv::Point max_point_;

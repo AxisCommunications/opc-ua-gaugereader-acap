@@ -36,7 +36,7 @@ class DynamicStringHandler
     }
     ~DynamicStringHandler();
     void SetStrNumber(const guint8 newnbr);
-    void UpdateStr(const double value);
+    void UpdateStr(const double value, const gint8 precision = -1);
 
   private:
     std::string RetrieveVapixCredentials(const char &username) const;

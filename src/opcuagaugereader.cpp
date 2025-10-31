@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-#include <utility>
-
+#include <format>
 #include <mutex>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/video.hpp>
 #include <string>
 #include <syslog.h>
+#include <utility>
 
 #include "DynamicStringHandler.hpp"
 #include "Gauge.hpp"
@@ -114,7 +114,7 @@ static gboolean imageanalysis(gpointer data)
             param_handler->GetClockwise());
     }
     assert(nullptr != gauge);
-    double value = gauge->ComputeGaugeValue(gray_mat);
+    auto value = gauge->ComputeGaugeValue(gray_mat);
     mtx.unlock();
     // Successfully read values range between 0 and 100 percent; if no value
     // could be read the computation will return -1
@@ -125,11 +125,27 @@ static gboolean imageanalysis(gpointer data)
     }
     else
     {
-        LOG_I("%s/%s: Value was %f", __FILE__, __FUNCTION__, value);
+        const auto rounddecimals = param_handler->GetRoundToDecimals();
+        if (-1 < rounddecimals)
+        {
+            // Round value if limited amount of decimals is requested
+            const double factor = pow(10.0, rounddecimals);
+            value = round(value * factor) / factor;
+            LOG_I(
+                "%s/%s: Value (with %i decimals) was %s",
+                __FILE__,
+                __FUNCTION__,
+                rounddecimals,
+                std::format("{:.{}f}", value, rounddecimals).c_str());
+        }
+        else
+        {
+            LOG_I("%s/%s: Value (with unlimited decimals) was %f", __FILE__, __FUNCTION__, value);
+        }
         opcuaserver.UpdateGaugeValue(value);
         if (nullptr != dynstr_handler)
         {
-            dynstr_handler->UpdateStr(value);
+            dynstr_handler->UpdateStr(value, rounddecimals);
         }
     }
 

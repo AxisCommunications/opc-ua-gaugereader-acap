@@ -149,6 +149,10 @@ through the application's parameter settings, found in the three vertical dots m
 
 ![Web UI Screenshot](images/web_ui_param_settings.png)
 
+In addition, the settings allow you to limit the amount of decimals for the
+output gauge value. The default value of -1 indicates no limit, 0 means no
+decimals (effectively an integer), 1 means one decimal, and so forth.
+
 ### Scripted installation and configuration
 
 Use the camera's
@@ -195,6 +199,7 @@ root.Opcuagaugereader.maxY=165
 root.Opcuagaugereader.minX=283
 root.Opcuagaugereader.minY=167
 root.Opcuagaugereader.port=4840
+root.Opcuagaugereader.RoundToDecimals=-1
 ```
 
 If you want to set the OPC UA server port to e.g. 4842:
