@@ -1,5 +1,5 @@
 ARG ARCH=aarch64
-ARG SDK_VERSION=12.6.0
+ARG SDK_VERSION=12.7.0
 ARG SDK_IMAGE=docker.io/axisecp/acap-native-sdk
 ARG DEBUG_WRITE
 ARG BUILD_DIR=/opt/build
@@ -108,6 +108,7 @@ RUN . /opt/axis/acapsdk/environment-setup* && \
     -DBUILD_BUILD_EXAMPLES=OFF \
     -DBUILD_SHARED_LIBS=ON \
     -DUA_ENABLE_NODEMANAGEMENT=ON \
+    -DUA_MULTITHREADING=100 \
     "$OPEN62541_SRC_DIR"
 RUN cmake --build . -j "$(nproc)" --target install/strip
 

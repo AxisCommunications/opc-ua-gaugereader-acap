@@ -102,7 +102,11 @@ void OpcUaServer::UpdateGaugeValue(double value)
     UA_Variant newvalue;
     UA_Variant_setScalar(&newvalue, &value, &UA_TYPES[UA_TYPES_DOUBLE]);
     UA_NodeId currentNodeId = UA_NODEID_STRING(1, LABEL);
-    UA_Server_writeValue(server_, currentNodeId, newvalue);
+    const auto rc = UA_Server_writeValue(server_, currentNodeId, newvalue);
+    if (UA_STATUSCODE_GOOD != rc)
+    {
+        LOG_E("%s/%s: Failed to set OPC UA gauge value (%s)", __FILE__, __FUNCTION__, UA_StatusCode_name(rc));
+    }
 }
 
 void OpcUaServer::AddDouble(char *label, UA_Double value)
@@ -124,7 +128,7 @@ void OpcUaServer::AddDouble(char *label, UA_Double value)
     UA_QualifiedName name = UA_QUALIFIEDNAME(1, label);
     UA_NodeId parent_node_id = UA_NODEID_NUMERIC(0, UA_NS0ID_OBJECTSFOLDER);
     UA_NodeId parent_ref_node_id = UA_NODEID_NUMERIC(0, UA_NS0ID_ORGANIZES);
-    UA_Server_addVariableNode(
+    const auto rc = UA_Server_addVariableNode(
         server_,
         node_id,
         parent_node_id,
@@ -134,6 +138,7 @@ void OpcUaServer::AddDouble(char *label, UA_Double value)
         attr,
         nullptr,
         nullptr);
+    assert(UA_STATUSCODE_GOOD == rc);
 }
 
 void OpcUaServer::RunUaServer(OpcUaServer *parent)
