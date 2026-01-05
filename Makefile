@@ -3,7 +3,7 @@ OBJECTS = $(wildcard $(CURDIR)/src/*.cpp)
 RM ?= rm -f
 ARCHS = aarch64 armv7hf
 
-SDK_PKGS = gio-2.0 gio-unix-2.0 vdostream libcurl axparameter
+SDK_PKGS = axparameter gio-2.0 gio-unix-2.0 libcurl vdostream
 OWN_PKGS = opencv4 open62541
 
 CXXFLAGS += -Os -pipe -std=c++20 -Wall -Werror -Wextra
@@ -19,7 +19,7 @@ LDLIBS += -lm -lpthread
 # Set DEBUG_WRITE to write debug images to storage
 ifneq ($(DEBUG_WRITE),)
 CXXFLAGS += -DDEBUG_WRITE
-DOCKER_ARGS += --build-arg DEBUG_WRITE=$(DEBUG_WRITE)
+CONTAINER_BUILD_ARGS += --build-arg DEBUG_WRITE=$(DEBUG_WRITE)
 endif
 
 .PHONY: all %.docker %.podman dockerbuild podmanbuild clean
@@ -32,7 +32,7 @@ $(TARGET): $(OBJECTS)
 
 # Container build targets
 %.docker %.podman:
-	DOCKER_BUILDKIT=1 $(patsubst .%,%,$(suffix $@)) build --build-arg ARCH=$(*F) -o type=local,dest=. "$(CURDIR)"
+	DOCKER_BUILDKIT=1 $(patsubst .%,%,$(suffix $@)) build --build-arg ARCH=$(*F) $(CONTAINER_BUILD_ARGS) -o type=local,dest=. "$(CURDIR)"
 
 dockerbuild: $(addsuffix .docker,$(ARCHS))
 podmanbuild: $(addsuffix .podman,$(ARCHS))
