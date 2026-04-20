@@ -215,7 +215,9 @@ Attach an OPC UA client to the port set in ACAP. The client will then be able
 to read the value (and its timestamp) from the application's OPC UA server.
 
 > [!NOTE]
-> The application will also log the gauge value in the camera's syslog.
+> The application will also log the gauge value in the camera's syslog and trigger a
+> data event in the camera's event system with the current gauge reading whenever the
+> value changes.
 
 ### Bonus
 
