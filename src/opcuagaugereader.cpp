@@ -23,6 +23,7 @@
 #include <utility>
 
 #include "DynamicStringHandler.hpp"
+#include "EventPusher.hpp"
 #include "Gauge.hpp"
 #include "ImageProvider.hpp"
 #include "OpcUaServer.hpp"
@@ -32,60 +33,62 @@
 using namespace cv;
 using namespace std;
 
-static GMainLoop *loop = nullptr;
+static GMainLoop *loop_ = nullptr;
 
-static mutex mtx;
+static mutex mtx_;
 
-static Gauge *gauge = nullptr;
-static OpcUaServer opcuaserver;
+static Gauge *gauge_ = nullptr;
+static OpcUaServer opcuaserver_;
+static EventPusher evpusher_;
+static gdouble lastvalue_ = -1.0;
 
-static ImageProvider *provider = nullptr;
-static Mat nv12_mat;
-static Mat gray_mat;
+static ImageProvider *provider_ = nullptr;
+static Mat nv12_mat_;
+static Mat gray_mat_;
 
-static DynamicStringHandler *dynstr_handler = nullptr;
-static ParamHandler *param_handler = nullptr;
+static DynamicStringHandler *dynstr_handler_ = nullptr;
+static ParamHandler *param_handler_ = nullptr;
 
 static void restart_opcuaserver(const guint32 port)
 {
-    mtx.lock();
-    if (opcuaserver.IsRunning())
+    mtx_.lock();
+    if (opcuaserver_.IsRunning())
     {
-        opcuaserver.ShutDownServer();
+        opcuaserver_.ShutDownServer();
     }
-    if (!opcuaserver.LaunchServer(port))
+    if (!opcuaserver_.LaunchServer(port))
     {
         LOG_E("%s/%s: Failed to launch OPC UA server", __FILE__, __FUNCTION__);
         assert(false);
     }
-    mtx.unlock();
+    mtx_.unlock();
 }
 
 static void replace_gauge()
 {
-    mtx.lock();
-    if (nullptr != gauge)
+    mtx_.lock();
+    if (nullptr != gauge_)
     {
-        delete gauge;
-        gauge = nullptr;
+        delete gauge_;
+        gauge_ = nullptr;
     }
-    mtx.unlock();
+    mtx_.unlock();
 }
 
 static void set_dynstr_nbr(const guint8 port)
 {
-    assert(nullptr != dynstr_handler);
-    mtx.lock();
-    dynstr_handler->SetStrNumber(port);
-    mtx.unlock();
+    assert(nullptr != dynstr_handler_);
+    mtx_.lock();
+    dynstr_handler_->SetStrNumber(port);
+    mtx_.unlock();
 }
 
 static gboolean imageanalysis(gpointer data)
 {
     (void)data;
     // Get the latest NV12 image frame from VDO using the imageprovider
-    assert(nullptr != provider);
-    auto buf = provider->GetLastFrameBlocking();
+    assert(nullptr != provider_);
+    auto buf = provider_->GetLastFrameBlocking();
     if (nullptr == buf)
     {
         LOG_I("%s/%s: No more frames available, exiting", __FILE__, __FUNCTION__);
@@ -95,27 +98,27 @@ static gboolean imageanalysis(gpointer data)
     // Assign the VDO image buffer to the nv12_mat OpenCV Mat.
     // This specific Mat is used as it is the one we created for NV12,
     // which has a different layout than e.g., BGR.
-    mtx.lock();
-    nv12_mat.data = static_cast<uint8_t *>(vdo_buffer_get_data(buf));
+    mtx_.lock();
+    nv12_mat_.data = static_cast<uint8_t *>(vdo_buffer_get_data(buf));
 
     // Convert the NV12 data to GRAY
-    cvtColor(nv12_mat, gray_mat, COLOR_YUV2GRAY_NV12, 1);
+    cvtColor(nv12_mat_, gray_mat_, COLOR_YUV2GRAY_NV12, 1);
 
     // Create gauge if nonexistent
-    if (nullptr == gauge)
+    if (nullptr == gauge_)
     {
         LOG_I("%s/%s: Set up new Gauge", __FILE__, __FUNCTION__);
-        assert(nullptr != param_handler);
-        gauge = new Gauge(
-            gray_mat,
-            param_handler->GetCenterPoint(),
-            param_handler->GetMinPoint(),
-            param_handler->GetMaxPoint(),
-            param_handler->GetClockwise());
+        assert(nullptr != param_handler_);
+        gauge_ = new Gauge(
+            gray_mat_,
+            param_handler_->GetCenterPoint(),
+            param_handler_->GetMinPoint(),
+            param_handler_->GetMaxPoint(),
+            param_handler_->GetClockwise());
     }
-    assert(nullptr != gauge);
-    auto value = gauge->ComputeGaugeValue(gray_mat);
-    mtx.unlock();
+    assert(nullptr != gauge_);
+    auto value = gauge_->ComputeGaugeValue(gray_mat_);
+    mtx_.unlock();
     // Successfully read values range between 0 and 100 percent; if no value
     // could be read the computation will return -1
     assert(value <= 100.0);
@@ -125,32 +128,35 @@ static gboolean imageanalysis(gpointer data)
     }
     else
     {
-        const auto rounddecimals = param_handler->GetRoundToDecimals();
+        const auto rounddecimals = param_handler_->GetRoundToDecimals();
+        string value_str;
         if (-1 < rounddecimals)
         {
             // Round value if limited amount of decimals is requested
             const double factor = pow(10.0, rounddecimals);
             value = round(value * factor) / factor;
-            LOG_I(
-                "%s/%s: Value (with %i decimals) was %s",
-                __FILE__,
-                __FUNCTION__,
-                rounddecimals,
-                std::format("{:.{}f}", value, rounddecimals).c_str());
+            value_str = std::format("{:.{}f}", value, rounddecimals);
+            LOG_I("%s/%s: Value (with %i decimals) was %s", __FILE__, __FUNCTION__, rounddecimals, value_str.c_str());
         }
         else
         {
-            LOG_I("%s/%s: Value (with unlimited decimals) was %f", __FILE__, __FUNCTION__, value);
+            value_str = std::to_string(value);
+            LOG_I("%s/%s: Value (with unlimited decimals) was %s", __FILE__, __FUNCTION__, value_str.c_str());
         }
-        opcuaserver.UpdateGaugeValue(value);
-        if (nullptr != dynstr_handler)
+        opcuaserver_.UpdateGaugeValue(value);
+        if (value != lastvalue_)
         {
-            dynstr_handler->UpdateStr(value, rounddecimals);
+            assert(nullptr != dynstr_handler_);
+            dynstr_handler_->UpdateStr(value_str);
+            if (evpusher_.Send(value, TRUE))
+            {
+                lastvalue_ = value;
+            }
         }
     }
 
     // Release the VDO frame buffer
-    provider->ReturnFrame(*buf);
+    provider_->ReturnFrame(*buf);
 
     return TRUE;
 }
@@ -173,23 +179,23 @@ static gboolean initimageanalysis(void)
 
     LOG_I("Creating VDO image provider and creating stream %d x %d", streamWidth, streamHeight);
     // TODO: Could we use the subformat Y800 to get gray 1-channel image directly?
-    provider = new ImageProvider(streamWidth, streamHeight, 2, VDO_FORMAT_YUV);
-    if (!provider)
+    provider_ = new ImageProvider(streamWidth, streamHeight, 2, VDO_FORMAT_YUV);
+    if (!provider_)
     {
         LOG_E("%s/%s: Failed to create ImageProvider", __FILE__, __FUNCTION__);
         return FALSE;
     }
 
     LOG_I("Start fetching video frames from VDO");
-    if (!ImageProvider::StartFrameFetch(*provider))
+    if (!ImageProvider::StartFrameFetch(*provider_))
     {
         LOG_E("%s/%s: Failed to fetch frames from VDO", __FILE__, __FUNCTION__);
         return FALSE;
     }
 
     // OpenCV represents NV12 with 1.5 bytes per pixel
-    nv12_mat = Mat(height * 3 / 2, width, CV_8UC1);
-    gray_mat = Mat(height, width, CV_8UC1);
+    nv12_mat_ = Mat(height * 3 / 2, width, CV_8UC1);
+    gray_mat_ = Mat(height, width, CV_8UC1);
 
     return TRUE;
 }
@@ -201,11 +207,11 @@ static void signalHandler(int signal_num)
     case SIGTERM:
     case SIGABRT:
     case SIGINT:
-        if (nullptr != provider)
+        if (nullptr != provider_)
         {
-            ImageProvider::StopFrameFetch(*provider);
+            ImageProvider::StopFrameFetch(*provider_);
         }
-        g_main_loop_quit(loop);
+        g_main_loop_quit(loop_);
         break;
     default:
         break;
@@ -249,12 +255,12 @@ int main(int argc, char *argv[])
     }
 
     // Init dynamic string handling
-    dynstr_handler = new DynamicStringHandler();
+    dynstr_handler_ = new DynamicStringHandler();
 
     // Init parameter handling (will also launch OPC UA server)
     LOG_I("Init parameter handling and launch OPC UA server ...");
-    param_handler = new ParamHandler(app_name, restart_opcuaserver, replace_gauge, set_dynstr_nbr);
-    if (nullptr == param_handler)
+    param_handler_ = new ParamHandler(app_name, restart_opcuaserver, replace_gauge, set_dynstr_nbr);
+    if (nullptr == param_handler_)
     {
         LOG_E("%s/%s: Failed to set up parameter handler and launch OPC UA server", __FILE__, __FUNCTION__);
         result = EXIT_FAILURE;
@@ -278,24 +284,24 @@ int main(int argc, char *argv[])
     }
 
     LOG_I("Start main loop ...");
-    assert(nullptr == loop);
-    loop = g_main_loop_new(nullptr, FALSE);
-    g_main_loop_run(loop);
+    assert(nullptr == loop_);
+    loop_ = g_main_loop_new(nullptr, FALSE);
+    g_main_loop_run(loop_);
 
     // Cleanup
     LOG_I("Shutdown ...");
-    g_main_loop_unref(loop);
-    if (nullptr != provider)
+    g_main_loop_unref(loop_);
+    if (nullptr != provider_)
     {
-        delete provider;
+        delete provider_;
     }
-    opcuaserver.ShutDownServer();
+    opcuaserver_.ShutDownServer();
 
 exit_param:
-    delete param_handler;
+    delete param_handler_;
 
 exit:
-    delete dynstr_handler;
+    delete dynstr_handler_;
     LOG_I("Exiting!");
     closelog();
 

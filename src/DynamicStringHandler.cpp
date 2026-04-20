@@ -16,7 +16,6 @@
 
 #include <assert.h>
 #include <cstdlib>
-#include <format>
 #include <gio/gio.h>
 
 #include "DynamicStringHandler.hpp"
@@ -72,7 +71,7 @@ void DynamicStringHandler::SetStrNumber(const guint8 newnbr)
     LOG_I("Now using dynamic string number %u", newnbr);
 }
 
-void DynamicStringHandler::UpdateStr(const double value, const gint8 precision)
+void DynamicStringHandler::UpdateStr(const std::string &value_str)
 {
     // We don't need to update too frequently
     const auto nowtime = steady_clock::now();
@@ -81,7 +80,6 @@ void DynamicStringHandler::UpdateStr(const double value, const gint8 precision)
         return;
     }
 
-    const auto value_str = -1 < precision ? std::format("{:.{}f}", value, precision) : to_string(value);
     const auto url = "http://127.0.0.12/axis-cgi/dynamicoverlay.cgi?action=settext&text_index=" + to_string(nbr_) +
                      "&text=" + value_str;
     if (!VapixGet(url))
@@ -91,7 +89,7 @@ void DynamicStringHandler::UpdateStr(const double value, const gint8 precision)
     lastupdate_ = nowtime;
 }
 
-string DynamicStringHandler::RetrieveVapixCredentials(const char &username) const
+string DynamicStringHandler::RetrieveVapixCredentials(const gchar &username) const
 {
     GError *error = nullptr;
     auto connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, nullptr, &error);

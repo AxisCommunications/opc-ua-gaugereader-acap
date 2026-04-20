@@ -36,10 +36,10 @@ class DynamicStringHandler
     }
     ~DynamicStringHandler();
     void SetStrNumber(const guint8 newnbr);
-    void UpdateStr(const double value, const gint8 precision = -1);
+    void UpdateStr(const std::string &value_str);
 
   private:
-    std::string RetrieveVapixCredentials(const char &username) const;
+    std::string RetrieveVapixCredentials(const gchar &username) const;
     gboolean VapixGet(const std::string &url);
 
     CURL *curl_;

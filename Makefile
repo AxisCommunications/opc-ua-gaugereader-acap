@@ -3,7 +3,7 @@ OBJECTS = $(wildcard $(CURDIR)/src/*.cpp)
 RM ?= rm -f
 ARCHS = aarch64 armv7hf
 
-SDK_PKGS = axparameter gio-2.0 gio-unix-2.0 libcurl vdostream
+SDK_PKGS = axevent axparameter gio-2.0 gio-unix-2.0 libcurl vdostream
 OWN_PKGS = opencv4 open62541
 
 CXXFLAGS += -Os -pipe -std=c++20 -Wall -Werror -Wextra
