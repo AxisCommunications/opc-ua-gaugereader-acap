@@ -1,14 +1,19 @@
 {
-    "schemaVersion": "1.8.0",
+    "schemaVersion": "2.0.0",
     "acapPackageConf": {
         "setup": {
             "friendlyName": "OPC UA Gauge Reader",
             "appName": "opcuagaugereader",
             "vendor": "Axis Communications AB",
-            "embeddedSdkVersion": "3.0",
             "vendorUrl": "https://www.axis.com/",
             "runMode": "respawn",
-            "version": "2.3.0"
+            "version": "2.4.0",
+            "vendorId": "1234567890",
+            "compatibleOsVersions": [
+                {
+                    "max": "13"
+                }
+            ]
         },
         "configuration": {
             "settingPage": "settings.html",
