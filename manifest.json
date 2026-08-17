@@ -4,13 +4,14 @@
         "setup": {
             "friendlyName": "OPC UA Gauge Reader",
             "appName": "opcuagaugereader",
-            "vendor": "Axis Communications AB",
+            "vendor": "Axis Communications",
+            "vendorId": "1234567890",
             "vendorUrl": "https://www.axis.com/",
             "runMode": "respawn",
-            "version": "2.4.0",
-            "vendorId": "1234567890",
+            "version": "2.4.1",
             "compatibleOsVersions": [
                 {
+                    "min": "12.11",
                     "max": "13"
                 }
             ]
