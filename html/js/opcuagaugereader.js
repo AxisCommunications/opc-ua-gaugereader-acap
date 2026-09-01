@@ -49,13 +49,13 @@ function drawMarker(X, Y, color, updateText) {
 	ctx.stroke();
 
 	if (updateText) {
-	    updateTextDisplay();
+		updateTextDisplay();
 	}
 }
 
 function updateTextDisplay() {
-    document.getElementById("values").textContent =
-        `${getPointText('center')} ${getPointText('min')} ${getPointText('max')}`;
+	document.getElementById("values").textContent =
+		`${getPointText('center')} ${getPointText('min')} ${getPointText('max')}`;
 }
 
 function drawCenter(updateText) {
@@ -111,12 +111,12 @@ function setParam(param, value) {
 }
 
 async function initWithCurrentValues() {
-    points['centerX'] = await getCurrentValue('centerX');
-    points['centerY'] = await getCurrentValue('centerY');
-    points['minX'] = await getCurrentValue('minX');
-    points['minY'] = await getCurrentValue('minY');
-    points['maxX'] = await getCurrentValue('maxX');
-    points['maxY'] = await getCurrentValue('maxY');
+	points['centerX'] = await getCurrentValue('centerX');
+	points['centerY'] = await getCurrentValue('centerY');
+	points['minX'] = await getCurrentValue('minX');
+	points['minY'] = await getCurrentValue('minY');
+	points['maxX'] = await getCurrentValue('maxX');
+	points['maxY'] = await getCurrentValue('maxY');
 }
 
 function handleCoord(X, Y) {
@@ -166,7 +166,7 @@ preview.height = preview.style.height = draw.height = h;
 preview.src = `/axis-cgi/mjpg/video.cgi?resolution=${w}x${h}`;
 var ctx = draw.getContext('2d');
 (async () => {
-    await initWithCurrentValues();
-    handleCoord(0, 0);
-    drawDefaultPoints();
+	await initWithCurrentValues();
+	handleCoord(0, 0);
+	drawDefaultPoints();
 })();

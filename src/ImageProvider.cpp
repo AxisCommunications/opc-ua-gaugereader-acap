@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <errno.h>
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <vdo-channel.h>
 #include <vdo-map.h>

@@ -43,16 +43,16 @@ ParamHandler::ParamHandler(
     assert(nullptr != axparameter_);
     // clang-format off
     LOG_I("Setting up parameters ...");
-    if (!SetupParam("DynamicStringNumber", param_callback) ||
-        !SetupParam("centerX", param_callback) ||
-        !SetupParam("centerY", param_callback) ||
-        !SetupParam("clockwise", param_callback) ||
-        !SetupParam("maxX", param_callback) ||
-        !SetupParam("maxY", param_callback) ||
-        !SetupParam("minX", param_callback) ||
-        !SetupParam("minY", param_callback) ||
-        !SetupParam("port", param_callback) ||
-        !SetupParam("RoundToDecimals", param_callback))
+    if (!SetupParam("DynamicStringNumber", ParamCallback) ||
+        !SetupParam("centerX", ParamCallback) ||
+        !SetupParam("centerY", ParamCallback) ||
+        !SetupParam("clockwise", ParamCallback) ||
+        !SetupParam("maxX", ParamCallback) ||
+        !SetupParam("maxY", ParamCallback) ||
+        !SetupParam("minX", ParamCallback) ||
+        !SetupParam("minY", ParamCallback) ||
+        !SetupParam("port", ParamCallback) ||
+        !SetupParam("RoundToDecimals", ParamCallback))
     // clang-format on
     {
         LOG_E("%s/%s: Failed to set up parameters", __FILE__, __FUNCTION__);
@@ -168,7 +168,7 @@ void ParamHandler::UpdateLocalParam(const gchar &name, const guint32 val)
     ReplaceGauge_();
 }
 
-void ParamHandler::param_callback(const gchar *name, const gchar *value, void *data)
+void ParamHandler::ParamCallback(const gchar *name, const gchar *value, void *data)
 {
     assert(nullptr != name);
     assert(nullptr != value);

@@ -24,11 +24,11 @@ class ParamHandler
   public:
     ParamHandler(
         const gchar *app_name,
-        void (*RestartOpcuaserver)(unsigned int),
+        void (*RestartOpcuaserver)(const guint32),
         void (*ReplaceGauge)(),
         void (*SetDynstrNbr)(const guint8));
     ~ParamHandler();
-    static void param_callback(const gchar *name, const gchar *value, void *data);
+    static void ParamCallback(const gchar *name, const gchar *value, void *data);
 
     gboolean GetClockwise() const
     {

@@ -1,5 +1,5 @@
 ---
-description: "Repository guidance for the OPC UA Gauge Reader ACAP: C++20 application code, manifest contracts, settings UI, packaging, builds, and validation."
+description: "Repository guidance for the OPC UA Gauge Reader ACAP application: C++20 application code, manifest contracts, settings UI, packaging, builds, and validation."
 applyTo: "**"
 ---
 
@@ -7,9 +7,11 @@ applyTo: "**"
 
 ## Scope and architecture
 
-- This is an AXIS ACAP v4 native application.
-- Always write the official platform names as `AXIS OS` and `AXIS ACAP`.
-- It acquires an NV12 VDO frame, converts it to BGR with OpenCV, and reads the value from a gauge.
+- This is an ACAP v4 native application.
+- Always write `AXIS OS` and not `Axis OS` or `AxisOS` or anything else that is not `AXIS OS`.
+- Generally, we tend to write `ACAP` rather than `AXIS ACAP` since that would be the same as "AXIS Axis Camera Application Platform".
+- ACAP is short for Axis Camera Application Platform, and is not a generic term for any camera application. Then we talk about ACAP application or ACAP package, depending on the context.
+- It acquires an NV12 VDO frame, converts it to grayscale with OpenCV, and reads the value from a gauge.
 - It publishes the gauge value through OPC UA, Axis events, and an AXIS OS dynamic string.
 - Keep existing component responsibilities:
   - [`ImageProvider`](../include/ImageProvider.hpp) handles VDO frames.
@@ -40,7 +42,6 @@ Keep `appName` `opcuagaugereader` consistent with the executable, parameter grou
 - Use PascalCase methods, trailing member underscores, GLib types at GLib boundaries, and established Yoda-style null/value comparisons.
 - Use `LOG_I` and `LOG_E` from [`include/common.hpp`](../include/common.hpp) for messages.
 - Follow the existing `__FILE__/__FUNCTION__` context pattern for failures.
-- `LOG_D` is compiled out unless `DEBUG_WRITE` is enabled.
 - Frames from `GetLastFrameBlocking()` must always be returned with `ReturnFrame()`.
 - Do not introduce unsynchronized access to shared gauge-analysis state.
 - Scope third-party GCC diagnostic suppression narrowly with the established push/pop pattern.
@@ -49,7 +50,7 @@ Keep `appName` `opcuagaugereader` consistent with the executable, parameter grou
 
 - The settings UI is static HTML and vanilla JavaScript, with no bundler or framework.
 - Preserve tab indentation in [`html/js/`](../html/js/) and the `fetch().then()` style for local flow changes.
-- [`Dockerfile`](../Dockerfile) cross-compiles for `aarch64` and `armv7hf` with the AXIS ACAP SDK.
+- [`Dockerfile`](../Dockerfile) cross-compiles for `aarch64` and `armv7hf` with the ACAP SDK.
 - Keep dependency versions and SHA256 values synchronized; Renovate manages those updates.
 - Do not edit generated root artifacts: `*.eap`, `*_LICENSE.txt`, `opcuagaugereader`, `pa*.conf`.
 - Regenerate packages through the container build.
