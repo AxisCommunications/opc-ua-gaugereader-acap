@@ -146,7 +146,7 @@ double Gauge::ComputeGaugeValue(const Mat &img) const
     // Calculate and return value (percent)
     const auto angle_pointer = GetDegree(point_center_, pointer_edge);
     const auto min_pointer_angle = AngleDifference(angle_min_, angle_pointer);
-    if (360 < min_pointer_angle && 360 > min_pointer_angle)
+    if (360 < min_pointer_angle && 0 > min_pointer_angle)
     {
         return 0;
     }

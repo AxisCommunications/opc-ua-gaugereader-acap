@@ -97,7 +97,7 @@ string DynamicStringHandler::RetrieveVapixCredentials(const gchar &username) con
     {
         LOG_E("Error connecting to D-Bus: %s", error->message);
         g_error_free(error);
-        return nullptr;
+        return "";
     }
 
     const char *bus_name = "com.axis.HTTPConf1";
