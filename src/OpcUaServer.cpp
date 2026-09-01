@@ -33,6 +33,8 @@ OpcUaServer::~OpcUaServer()
 
 bool OpcUaServer::LaunchServer(const unsigned int serverport)
 {
+    lock_guard<mutex> lock(mtx_);
+
     LOG_I("%s/%s: port %u", __FILE__, __FUNCTION__, serverport);
     assert(nullptr == server_);
     assert(nullptr == serverthread_);
@@ -50,6 +52,7 @@ bool OpcUaServer::LaunchServer(const unsigned int serverport)
     UA_ServerConfig_setMinimal(UA_Server_getConfig(server_), serverport, nullptr);
     AddDouble(LABEL, -1);
 
+    running_ = true;
     serverthread_ = new thread(this->RunUaServer, this);
 
     return true;
@@ -57,41 +60,37 @@ bool OpcUaServer::LaunchServer(const unsigned int serverport)
 
 void OpcUaServer::ShutDownServer()
 {
-    assert(running_);
-    assert(nullptr != serverthread_);
-
     LOG_I("%s/%s: Shutting down UA server ...", __FILE__, __FUNCTION__);
-    running_ = false;
-    if (nullptr != serverthread_)
+    thread *serverthread = nullptr;
     {
-        if (serverthread_->joinable())
+        lock_guard<mutex> lock(mtx_);
+        running_ = false;
+        serverthread = serverthread_;
+    }
+
+    if (nullptr != serverthread)
+    {
+        if (serverthread->joinable())
         {
-            serverthread_->join();
+            serverthread->join();
         }
-        delete serverthread_;
+        delete serverthread;
+        lock_guard<mutex> lock(mtx_);
         serverthread_ = nullptr;
     }
-    assert(nullptr == server_);
     LOG_I("%s/%s: UA server has been shut down", __FILE__, __FUNCTION__);
 }
 
 bool OpcUaServer::IsRunning() const
 {
-    if (running_)
-    {
-        assert(nullptr != server_);
-        assert(nullptr != serverthread_);
-    }
-    else
-    {
-        assert(nullptr == server_);
-        assert(nullptr == serverthread_);
-    }
+    lock_guard<mutex> lock(mtx_);
     return running_;
 }
 
 void OpcUaServer::UpdateGaugeValue(double value)
 {
+    lock_guard<mutex> lock(mtx_);
+
     // Always update value even if there is no change; that will bump the
     // timestamp on the server so the client can see if the value is fresh or
     // ancient.
@@ -144,13 +143,25 @@ void OpcUaServer::AddDouble(char *label, UA_Double value)
 void OpcUaServer::RunUaServer(OpcUaServer *parent)
 {
     assert(nullptr != parent);
-    assert(nullptr != parent->server_);
-    assert(false == parent->running_);
 
     LOG_I("%s/%s: Starting UA server ...", __FILE__, __FUNCTION__);
-    parent->running_ = true;
-    UA_StatusCode status = UA_Server_run(parent->server_, &parent->running_);
+    UA_StatusCode status = UA_STATUSCODE_GOOD;
+    while (parent->running_)
+    {
+        lock_guard<mutex> lock(parent->mtx_);
+        if (!parent->running_ || nullptr == parent->server_)
+        {
+            break;
+        }
+        status = UA_Server_run_iterate(parent->server_, true);
+        if (UA_STATUSCODE_GOOD != status)
+        {
+            break;
+        }
+    }
     LOG_I("%s/%s: UA Server exit status: %s", __FILE__, __FUNCTION__, UA_StatusCode_name(status));
+
+    lock_guard<mutex> lock(parent->mtx_);
     UA_Server_delete(parent->server_);
     parent->server_ = nullptr;
     return;

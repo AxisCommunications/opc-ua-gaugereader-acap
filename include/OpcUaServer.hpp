@@ -16,9 +16,12 @@
 
 #pragma once
 
+#include <atomic>
+#include <mutex>
+#include <thread>
+
 #include <open62541/server.h>
 #include <open62541/server_config_default.h>
-#include <thread>
 
 class OpcUaServer
 {
@@ -35,6 +38,7 @@ class OpcUaServer
     void AddDouble(char *label, UA_Double value);
     static void RunUaServer(OpcUaServer *parent);
     std::thread *serverthread_;
-    UA_Boolean running_;
+    std::atomic_bool running_;
     UA_Server *server_;
+    mutable std::mutex mtx_;
 };
