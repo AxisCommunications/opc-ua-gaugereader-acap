@@ -45,6 +45,8 @@ Keep `appName` `opcuagaugereader` consistent with the executable, parameter grou
 - Frames from `GetLastFrameBlocking()` must always be returned with `ReturnFrame()`.
 - Do not introduce unsynchronized access to shared gauge-analysis state.
 - Scope third-party GCC diagnostic suppression narrowly with the established push/pop pattern.
+- Always set `const` on anything that can be `const`.
+- Use `auto` extensively, but not when keeping the type explicit is more readable.
 
 ## UI and packaging
 

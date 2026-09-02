@@ -32,29 +32,44 @@ class ParamHandler
 
     gboolean GetClockwise() const
     {
-        return clockwise_;
+        g_mutex_lock(&mtx_);
+        const auto clockwise = clockwise_;
+        g_mutex_unlock(&mtx_);
+        return clockwise;
     };
     cv::Point GetCenterPoint() const
     {
-        return center_point_;
+        g_mutex_lock(&mtx_);
+        const auto center_point = center_point_;
+        g_mutex_unlock(&mtx_);
+        return center_point;
     };
     cv::Point GetMinPoint() const
     {
-        return min_point_;
+        g_mutex_lock(&mtx_);
+        const auto min_point = min_point_;
+        g_mutex_unlock(&mtx_);
+        return min_point;
     };
     cv::Point GetMaxPoint() const
     {
-        return max_point_;
+        g_mutex_lock(&mtx_);
+        const auto max_point = max_point_;
+        g_mutex_unlock(&mtx_);
+        return max_point;
     };
     gint8 GetRoundToDecimals() const
     {
-        return round_to_decimals_;
+        g_mutex_lock(&mtx_);
+        const auto round_to_decimals = round_to_decimals_;
+        g_mutex_unlock(&mtx_);
+        return round_to_decimals;
     };
 
   private:
     gchar *GetParam(const gchar &name) const;
     gboolean GetParam(const gchar &name, gint32 &val) const;
-    void UpdateLocalParam(const gchar &name, const guint32 val);
+    void UpdateLocalParam(const gchar &name, const gint32 val);
     gboolean SetupParam(const gchar *name, AXParameterCallback callbackfn);
 
     void (*RestartOpcuaserver_)(const guint32);

@@ -103,56 +103,56 @@ gboolean ParamHandler::GetParam(const gchar &name, gint32 &val) const
     return TRUE;
 }
 
-void ParamHandler::UpdateLocalParam(const gchar &name, const guint32 val)
+void ParamHandler::UpdateLocalParam(const gchar &name, const gint32 val)
 {
     // Parameters that do not change the Gauge reader go here
-    if (0 == strncmp("port", &name, 4))
+    if (0 == g_strcmp0(&name, "port"))
     {
         assert(nullptr != RestartOpcuaserver_);
-        RestartOpcuaserver_(val);
+        RestartOpcuaserver_(static_cast<guint32>(val));
         return;
     }
-    else if (0 == strncmp("DynamicStringNumber", &name, 19))
+    else if (0 == g_strcmp0(&name, "DynamicStringNumber"))
     {
         assert(nullptr != SetDynstrNbr_);
-        SetDynstrNbr_(val);
+        SetDynstrNbr_(static_cast<guint8>(val));
         return;
     }
-    else if (0 == strncmp("RoundToDecimals", &name, 15))
+    else if (0 == g_strcmp0(&name, "RoundToDecimals"))
     {
         g_mutex_lock(&mtx_);
-        round_to_decimals_ = static_cast<guint8>(val);
+        round_to_decimals_ = static_cast<gint8>(val);
         g_mutex_unlock(&mtx_);
         return;
     }
 
     // The following parameters trigger recalibration of the Gauge
     g_mutex_lock(&mtx_);
-    if (0 == strncmp("cloc", &name, 4))
+    if (0 == g_strcmp0(&name, "clockwise"))
     {
         clockwise_ = (1 == val);
     }
-    else if (0 == strncmp("centerX", &name, 7))
+    else if (0 == g_strcmp0(&name, "centerX"))
     {
         center_point_.x = val;
     }
-    else if (0 == strncmp("centerY", &name, 7))
+    else if (0 == g_strcmp0(&name, "centerY"))
     {
         center_point_.y = val;
     }
-    else if (0 == strncmp("minX", &name, 4))
+    else if (0 == g_strcmp0(&name, "minX"))
     {
         min_point_.x = val;
     }
-    else if (0 == strncmp("minY", &name, 4))
+    else if (0 == g_strcmp0(&name, "minY"))
     {
         min_point_.y = val;
     }
-    else if (0 == strncmp("maxX", &name, 4))
+    else if (0 == g_strcmp0(&name, "maxX"))
     {
         max_point_.x = val;
     }
-    else if (0 == strncmp("maxY", &name, 4))
+    else if (0 == g_strcmp0(&name, "maxY"))
     {
         max_point_.y = val;
     }

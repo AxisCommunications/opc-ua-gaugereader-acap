@@ -36,9 +36,12 @@ class OpcUaServer
   protected:
   private:
     void AddDouble(char *label, UA_Double value);
+    void WriteGaugeValue(double value);
     static void RunUaServer(OpcUaServer *parent);
     std::thread *serverthread_;
     std::atomic_bool running_;
     UA_Server *server_;
+    double gauge_value_;
+    bool gauge_value_pending_;
     mutable std::mutex mtx_;
 };

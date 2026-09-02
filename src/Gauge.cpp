@@ -42,12 +42,20 @@ Gauge::Gauge(
     const bool clockwise)
     : clockwise_(clockwise), img_size_(img.size())
 {
+    assert(!img.empty());
+    assert(0 <= point_center.x && 0 <= point_center.y && point_center.x < img.cols && point_center.y < img.rows);
+    assert(0 <= point_min.x && 0 <= point_min.y && point_min.x < img.cols && point_min.y < img.rows);
+    assert(0 <= point_max.x && 0 <= point_max.y && point_max.x < img.cols && point_max.y < img.rows);
+
     // Calculate angles and radiuses
     angle_min_ = GetDegree(point_center, point_min);
     angle_max_ = GetDegree(point_center, point_max);
     angle_min_max_ = AngleDifference(angle_min_, angle_max_);
     const auto d1 = EuclidianDistance(point_center, point_min);
     const auto d2 = EuclidianDistance(point_center, point_max);
+    assert(0 < d1);
+    assert(0 < d2);
+    assert(point_min != point_max);
     unsigned int radii = round((d1 + d2) / 2);
     big_radii_ = round(radii * 0.75);
     small_radii_ = round(radii / 3);
@@ -76,6 +84,8 @@ Gauge::Gauge(
     }
     croprange_x_ = Range(min_x, max_x);
     croprange_y_ = Range(min_y, max_y);
+    assert(!croprange_x_.empty());
+    assert(!croprange_y_.empty());
     const Point offset(croprange_x_.start, croprange_y_.start);
     point_min_ = point_min - offset;
     point_center_ = point_center - offset;
@@ -146,7 +156,7 @@ double Gauge::ComputeGaugeValue(const Mat &img) const
     // Calculate and return value (percent)
     const auto angle_pointer = GetDegree(point_center_, pointer_edge);
     const auto min_pointer_angle = AngleDifference(angle_min_, angle_pointer);
-    if (360 < min_pointer_angle && 0 > min_pointer_angle)
+    if (0 > min_pointer_angle || 360 < min_pointer_angle)
     {
         return 0;
     }

@@ -15,6 +15,7 @@
  */
 
 #include <format>
+#include <memory>
 #include <mutex>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/video.hpp>
@@ -39,7 +40,7 @@ static mutex mtx_;
 
 static Gauge *gauge_ = nullptr;
 static OpcUaServer opcuaserver_;
-static EventPusher evpusher_;
+static unique_ptr<EventPusher> evpusher_;
 static gdouble lastvalue_ = -1.0;
 
 static ImageProvider *provider_ = nullptr;
@@ -148,7 +149,8 @@ static gboolean imageanalysis(gpointer data)
         {
             assert(nullptr != dynstr_handler_);
             dynstr_handler_->UpdateStr(value_str);
-            if (evpusher_.Send(value, TRUE))
+            assert(nullptr != evpusher_);
+            if (evpusher_->Send(value, TRUE))
             {
                 lastvalue_ = value;
             }
@@ -254,6 +256,8 @@ int main(int argc, char *argv[])
         goto exit;
     }
 
+    evpusher_ = make_unique<EventPusher>();
+
     // Init dynamic string handling
     dynstr_handler_ = new DynamicStringHandler();
 
@@ -295,14 +299,15 @@ int main(int argc, char *argv[])
     {
         delete provider_;
     }
-    opcuaserver_.ShutDownServer();
 
 exit_param:
     delete param_handler_;
+    opcuaserver_.ShutDownServer();
 
 exit:
     delete dynstr_handler_;
     LOG_I("Exiting!");
+    evpusher_.reset();
     closelog();
 
     return result;

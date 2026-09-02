@@ -19,6 +19,7 @@
 #include <chrono>
 #include <curl/curl.h>
 #include <glib.h>
+#include <mutex>
 #include <string>
 
 /**
@@ -45,4 +46,5 @@ class DynamicStringHandler
     CURL *curl_;
     guint8 nbr_;
     std::chrono::time_point<std::chrono::steady_clock> lastupdate_;
+    std::mutex mtx_;
 };
