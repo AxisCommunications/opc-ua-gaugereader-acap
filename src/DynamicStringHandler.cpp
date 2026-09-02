@@ -51,7 +51,7 @@ DynamicStringHandler::DynamicStringHandler(const guint8 nbr)
          CURLE_OK == curl_easy_setopt(curl_, CURLOPT_NOPROGRESS, 2L) &&
          CURLE_OK == curl_easy_setopt(curl_, CURLOPT_USERPWD, credentials.c_str()) &&
          CURLE_OK == curl_easy_setopt(curl_, CURLOPT_HTTPGET, 1L) &&
-         CURLE_OK == curl_easy_setopt(curl_, CURLOPT_TIMEOUT, 1) &&
+         CURLE_OK == curl_easy_setopt(curl_, CURLOPT_TIMEOUT, 1L) &&
          CURLE_OK == curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, append_to_string_callback));
 
     assert(curl_init);
@@ -67,12 +67,15 @@ DynamicStringHandler::~DynamicStringHandler()
 
 void DynamicStringHandler::SetStrNumber(const guint8 newnbr)
 {
+    lock_guard<mutex> lock(mtx_);
     nbr_ = newnbr;
     LOG_I("Now using dynamic string number %u", newnbr);
 }
 
 void DynamicStringHandler::UpdateStr(const std::string &value_str)
 {
+    lock_guard<mutex> lock(mtx_);
+
     // We don't need to update too frequently
     const auto nowtime = steady_clock::now();
     if (1 > duration_cast<seconds>(nowtime - lastupdate_).count())
@@ -80,12 +83,19 @@ void DynamicStringHandler::UpdateStr(const std::string &value_str)
         return;
     }
 
+    const auto escaped_value = curl_easy_escape(curl_, value_str.c_str(), 0);
+    if (nullptr == escaped_value)
+    {
+        LOG_E("%s/%s: Failed to escape dynamic string", __FILE__, __FUNCTION__);
+        return;
+    }
     const auto url = "http://127.0.0.12/axis-cgi/dynamicoverlay.cgi?action=settext&text_index=" + to_string(nbr_) +
-                     "&text=" + value_str;
+                     "&text=" + escaped_value;
     if (!VapixGet(url))
     {
         LOG_E("%s/%s: Failed to update dynamic string", __FILE__, __FUNCTION__);
     }
+    curl_free(escaped_value);
     lastupdate_ = nowtime;
 }
 
@@ -95,9 +105,9 @@ string DynamicStringHandler::RetrieveVapixCredentials(const gchar &username) con
     auto connection = g_bus_get_sync(G_BUS_TYPE_SYSTEM, nullptr, &error);
     if (nullptr == connection)
     {
-        LOG_E("Error connecting to D-Bus: %s", error->message);
-        g_error_free(error);
-        return nullptr;
+        LOG_E("Error connecting to D-Bus: %s", (nullptr != error) ? error->message : "N/A");
+        g_clear_error(&error);
+        return "";
     }
 
     const char *bus_name = "com.axis.HTTPConf1";
@@ -119,8 +129,9 @@ string DynamicStringHandler::RetrieveVapixCredentials(const gchar &username) con
         &error);
     if (nullptr == result)
     {
-        LOG_E("Error invoking D-Bus method: %s", error->message);
-        g_error_free(error);
+        LOG_E("Error invoking D-Bus method: %s", (nullptr != error) ? error->message : "N/A");
+        g_clear_error(&error);
+        g_object_unref(connection);
         return "";
     }
 
@@ -129,6 +140,7 @@ string DynamicStringHandler::RetrieveVapixCredentials(const gchar &username) con
     g_variant_get(result, "(&s)", &credentials_string);
     string credentials(credentials_string);
     g_variant_unref(result);
+    g_object_unref(connection);
 
     return credentials;
 }

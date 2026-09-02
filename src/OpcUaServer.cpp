@@ -15,6 +15,7 @@
  */
 
 #include <assert.h>
+#include <utility>
 
 #include "OpcUaServer.hpp"
 #include "common.hpp"
@@ -23,16 +24,20 @@ using namespace std;
 
 #define LABEL (char *)"GaugeReading"
 
-OpcUaServer::OpcUaServer() : serverthread_(nullptr), running_(false), server_(nullptr)
+OpcUaServer::OpcUaServer()
+    : serverthread_(nullptr), running_(false), server_(nullptr), gauge_value_(-1), gauge_value_pending_(false)
 {
 }
 
 OpcUaServer::~OpcUaServer()
 {
+    ShutDownServer();
 }
 
 bool OpcUaServer::LaunchServer(const unsigned int serverport)
 {
+    lock_guard<mutex> lock(mtx_);
+
     LOG_I("%s/%s: port %u", __FILE__, __FUNCTION__, serverport);
     assert(nullptr == server_);
     assert(nullptr == serverthread_);
@@ -50,6 +55,7 @@ bool OpcUaServer::LaunchServer(const unsigned int serverport)
     UA_ServerConfig_setMinimal(UA_Server_getConfig(server_), serverport, nullptr);
     AddDouble(LABEL, -1);
 
+    running_ = true;
     serverthread_ = new thread(this->RunUaServer, this);
 
     return true;
@@ -57,48 +63,44 @@ bool OpcUaServer::LaunchServer(const unsigned int serverport)
 
 void OpcUaServer::ShutDownServer()
 {
-    assert(running_);
-    assert(nullptr != serverthread_);
+    thread *serverthread = nullptr;
+    {
+        lock_guard<mutex> lock(mtx_);
+        serverthread = exchange(serverthread_, nullptr);
+        if (nullptr == serverthread)
+        {
+            return;
+        }
+        running_ = false;
+    }
 
     LOG_I("%s/%s: Shutting down UA server ...", __FILE__, __FUNCTION__);
-    running_ = false;
-    if (nullptr != serverthread_)
+    if (serverthread->joinable())
     {
-        if (serverthread_->joinable())
-        {
-            serverthread_->join();
-        }
-        delete serverthread_;
-        serverthread_ = nullptr;
+        serverthread->join();
     }
-    assert(nullptr == server_);
+    delete serverthread;
     LOG_I("%s/%s: UA server has been shut down", __FILE__, __FUNCTION__);
 }
 
 bool OpcUaServer::IsRunning() const
 {
-    if (running_)
-    {
-        assert(nullptr != server_);
-        assert(nullptr != serverthread_);
-    }
-    else
-    {
-        assert(nullptr == server_);
-        assert(nullptr == serverthread_);
-    }
+    lock_guard<mutex> lock(mtx_);
     return running_;
 }
 
 void OpcUaServer::UpdateGaugeValue(double value)
 {
-    // Always update value even if there is no change; that will bump the
-    // timestamp on the server so the client can see if the value is fresh or
-    // ancient.
-    if (nullptr == server_)
-    {
-        return;
-    }
+    lock_guard<mutex> lock(mtx_);
+
+    gauge_value_ = value;
+    gauge_value_pending_ = true;
+}
+
+void OpcUaServer::WriteGaugeValue(double value)
+{
+    assert(nullptr != server_);
+
     UA_Variant newvalue;
     UA_Variant_setScalar(&newvalue, &value, &UA_TYPES[UA_TYPES_DOUBLE]);
     UA_NodeId currentNodeId = UA_NODEID_STRING(1, LABEL);
@@ -144,14 +146,36 @@ void OpcUaServer::AddDouble(char *label, UA_Double value)
 void OpcUaServer::RunUaServer(OpcUaServer *parent)
 {
     assert(nullptr != parent);
-    assert(nullptr != parent->server_);
-    assert(false == parent->running_);
 
     LOG_I("%s/%s: Starting UA server ...", __FILE__, __FUNCTION__);
-    parent->running_ = true;
-    UA_StatusCode status = UA_Server_run(parent->server_, &parent->running_);
+    UA_StatusCode status = UA_STATUSCODE_GOOD;
+    while (parent->running_)
+    {
+        double gauge_value = 0;
+        bool gauge_value_pending = false;
+        {
+            lock_guard<mutex> lock(parent->mtx_);
+            if (!parent->running_ || nullptr == parent->server_)
+            {
+                break;
+            }
+            gauge_value = parent->gauge_value_;
+            gauge_value_pending = exchange(parent->gauge_value_pending_, false);
+        }
+        if (gauge_value_pending)
+        {
+            parent->WriteGaugeValue(gauge_value);
+        }
+        status = UA_Server_run_iterate(parent->server_, true);
+        if (UA_STATUSCODE_GOOD != status)
+        {
+            break;
+        }
+    }
     LOG_I("%s/%s: UA Server exit status: %s", __FILE__, __FUNCTION__, UA_StatusCode_name(status));
-    UA_Server_delete(parent->server_);
-    parent->server_ = nullptr;
+
+    lock_guard<mutex> lock(parent->mtx_);
+    parent->running_ = false;
+    UA_Server_delete(exchange(parent->server_, nullptr));
     return;
 }

@@ -21,6 +21,7 @@
 #include <assert.h>
 #include <errno.h>
 
+#pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <vdo-channel.h>
 #include <vdo-map.h>
@@ -58,6 +59,7 @@ bool ImageProvider::ChooseStreamResolution(
     {
         LOG_E("%s: Failed vdo_channel_get(): %s", __func__, (error != nullptr) ? error->message : "N/A");
         g_clear_object(&channel);
+        return false;
     }
     const auto set = vdo_channel_get_resolutions(channel, nullptr, &error);
     g_clear_object(&channel);
@@ -94,7 +96,7 @@ bool ImageProvider::ChooseStreamResolution(
     // for creating the stream. If that info for some reason was empty we
     // fall back to trying to create a stream with client-supplied w/h.
     chosen_width = req_width;
-    chosen_width = req_height;
+    chosen_height = req_height;
     if (0 <= best_res_idx)
     {
         chosen_width = set->resolutions[best_res_idx].width;
