@@ -38,25 +38,37 @@ bool OpcUaServer::LaunchServer(const unsigned int serverport)
 {
     lock_guard<mutex> lock(mtx_);
 
-    LOG_I("%s/%s: port %u", __FILE__, __FUNCTION__, serverport);
     assert(nullptr == server_);
     assert(nullptr == serverthread_);
     assert(!running_);
     assert(1024 <= serverport && 65535 >= serverport);
 
     // Create an OPC UA server
-    LOG_I("%s/%s: Create UA server serving on port %u", __FILE__, __FUNCTION__, serverport);
+    LOG_I("⏳ Creating UA server serving on port %u ...", serverport);
     server_ = UA_Server_new();
     if (nullptr == server_)
     {
-        LOG_E("%s/%s: Failed to create new UA_Server", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: Failed to create new UA_Server", __FILE__, __func__);
         return false;
     }
-    UA_ServerConfig_setMinimal(UA_Server_getConfig(server_), serverport, nullptr);
+    const auto config_status = UA_ServerConfig_setMinimal(UA_Server_getConfig(server_), serverport, nullptr);
+    if (UA_STATUSCODE_GOOD != config_status)
+    {
+        LOG_E(
+            "%s/%s: Failed configuring UA server on port %u (%s)",
+            __FILE__,
+            __func__,
+            serverport,
+            UA_StatusCode_name(config_status));
+        UA_Server_delete(exchange(server_, nullptr));
+        return false;
+    }
     AddDouble(LABEL, -1);
 
     running_ = true;
     serverthread_ = new thread(this->RunUaServer, this);
+
+    LOG_I("✅ UA server configured for port %u", serverport);
 
     return true;
 }
@@ -74,13 +86,13 @@ void OpcUaServer::ShutDownServer()
         running_ = false;
     }
 
-    LOG_I("%s/%s: Shutting down UA server ...", __FILE__, __FUNCTION__);
+    LOG_I("⏳ Shutting down UA server ...");
     if (serverthread->joinable())
     {
         serverthread->join();
     }
     delete serverthread;
-    LOG_I("%s/%s: UA server has been shut down", __FILE__, __FUNCTION__);
+    LOG_I("✅ UA server has been shut down");
 }
 
 bool OpcUaServer::IsRunning() const
@@ -107,7 +119,7 @@ void OpcUaServer::WriteGaugeValue(double value)
     const auto rc = UA_Server_writeValue(server_, currentNodeId, newvalue);
     if (UA_STATUSCODE_GOOD != rc)
     {
-        LOG_E("%s/%s: Failed to set OPC UA gauge value (%s)", __FILE__, __FUNCTION__, UA_StatusCode_name(rc));
+        LOG_E("%s/%s: Failed to set OPC UA gauge value (%s)", __FILE__, __func__, UA_StatusCode_name(rc));
     }
 }
 
@@ -147,9 +159,9 @@ void OpcUaServer::RunUaServer(OpcUaServer *parent)
 {
     assert(nullptr != parent);
 
-    LOG_I("%s/%s: Starting UA server ...", __FILE__, __FUNCTION__);
-    UA_StatusCode status = UA_STATUSCODE_GOOD;
-    while (parent->running_)
+    LOG_I("⏳ Starting UA server ...");
+    auto status = UA_Server_run_startup(parent->server_);
+    while (UA_STATUSCODE_GOOD == status && parent->running_)
     {
         double gauge_value = 0;
         bool gauge_value_pending = false;
@@ -166,13 +178,13 @@ void OpcUaServer::RunUaServer(OpcUaServer *parent)
         {
             parent->WriteGaugeValue(gauge_value);
         }
-        status = UA_Server_run_iterate(parent->server_, true);
-        if (UA_STATUSCODE_GOOD != status)
-        {
-            break;
-        }
+        UA_Server_run_iterate(parent->server_, true);
     }
-    LOG_I("%s/%s: UA Server exit status: %s", __FILE__, __FUNCTION__, UA_StatusCode_name(status));
+    if (UA_STATUSCODE_GOOD == status)
+    {
+        status = UA_Server_run_shutdown(parent->server_);
+    }
+    LOG_I("UA Server exit status: %s", UA_StatusCode_name(status));
 
     lock_guard<mutex> lock(parent->mtx_);
     parent->running_ = false;

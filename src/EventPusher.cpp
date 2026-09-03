@@ -30,7 +30,7 @@ static void declaration_complete(guint declaration, gpointer user_data)
 
     auto init = static_cast<gboolean *>(user_data);
     *init = TRUE;
-    LOG_I("Event declaration complete!");
+    LOG_I("✅ Event declaration complete");
 }
 
 EventPusher::EventPusher() : event_handler_(ax_event_handler_new()), initialized_(FALSE)
@@ -64,7 +64,7 @@ EventPusher::EventPusher() : event_handler_(ax_event_handler_new()), initialized
 
     if (nullptr != error)
     {
-        LOG_E("%s/%s: Could not add key values: %s", __FILE__, __FUNCTION__, error->message);
+        LOG_E("%s/%s: Could not add key values: %s", __FILE__, __func__, error->message);
         throw runtime_error(error->message);
         g_error_free(error);
     }
@@ -89,7 +89,7 @@ EventPusher::EventPusher() : event_handler_(ax_event_handler_new()), initialized
             &initialized_,
             &error))
     {
-        LOG_E("%s/%s: Could not declare: %s", __FILE__, __FUNCTION__, error->message);
+        LOG_E("%s/%s: Could not declare: %s", __FILE__, __func__, error->message);
         throw runtime_error(error->message);
         g_error_free(error);
     }
@@ -103,10 +103,10 @@ EventPusher::~EventPusher()
     assert(nullptr != event_handler_);
     assert(0 != event_id_);
 
-    LOG_I("%s/%s: Undeclare event ...", __FILE__, __FUNCTION__);
+    LOG_I("⏳ Undeclare event ...");
     ax_event_handler_undeclare(event_handler_, event_id_, nullptr);
 
-    LOG_I("%s/%s: Free eventhandler ...", __FILE__, __FUNCTION__);
+    LOG_I("⏳ Free eventhandler ...");
     ax_event_handler_free(event_handler_);
 }
 
@@ -114,7 +114,7 @@ gboolean EventPusher::Send(const gdouble value, const gboolean verbose_logs) con
 {
     if (!initialized_)
     {
-        LOG_E("%s/%s: Event handling not yet initialized", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: Event handling not yet initialized", __FILE__, __func__);
         return FALSE;
     }
 
@@ -140,7 +140,7 @@ gboolean EventPusher::Send(const gdouble value, const gboolean verbose_logs) con
     }
     else if (verbose_logs)
     {
-        LOG_I("Data event sent with gauge value %f%%", value);
+        LOG_I("📯 Data event sent with gauge value %f%%", value);
     }
 
     ax_event_free(event);

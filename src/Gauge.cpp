@@ -102,9 +102,8 @@ Gauge::Gauge(
     DBG_WRITE_IMG("mask_2_global.png", global_mask_);
 
     LOG_I(
-        "%s/%s: %sclockwise, img size: (%u, %u)",
-        __FILE__,
-        __FUNCTION__,
+        "✅ (%s) %sclockwise, img size: (%u, %u)",
+        __func__,
         clockwise_ ? "" : "counter",
         img_size_.width,
         img_size_.height);
@@ -149,7 +148,7 @@ double Gauge::ComputeGaugeValue(const Mat &img) const
     Point pointer_edge;
     if (!ContourEdgePoint(mat_a, pointer_edge))
     {
-        LOG_E("%s/%s: ContourEdgePoint FAILED", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: ContourEdgePoint FAILED", __FILE__, __func__);
         return -1;
     }
 

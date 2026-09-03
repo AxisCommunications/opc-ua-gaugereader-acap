@@ -35,6 +35,7 @@ using namespace cv;
 using namespace std;
 
 static GMainLoop *loop_ = nullptr;
+static volatile sig_atomic_t shutdown_requested_ = 0;
 
 static mutex mtx_;
 
@@ -59,7 +60,7 @@ static void restart_opcuaserver(const guint32 port)
     }
     if (!opcuaserver_.LaunchServer(port))
     {
-        LOG_E("%s/%s: Failed to launch OPC UA server", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: Failed to launch OPC UA server", __FILE__, __func__);
         assert(false);
     }
     mtx_.unlock();
@@ -87,12 +88,18 @@ static void set_dynstr_nbr(const guint8 port)
 static gboolean imageanalysis(gpointer data)
 {
     (void)data;
+    if (shutdown_requested_)
+    {
+        g_main_loop_quit(loop_);
+        return FALSE;
+    }
+
     // Get the latest NV12 image frame from VDO using the imageprovider
     assert(nullptr != provider_);
     auto buf = provider_->GetLastFrameBlocking();
     if (nullptr == buf)
     {
-        LOG_I("%s/%s: No more frames available, exiting", __FILE__, __FUNCTION__);
+        LOG_I("⏳ No more frames available, exiting (%s) ...", __func__);
         return TRUE;
     }
 
@@ -108,7 +115,7 @@ static gboolean imageanalysis(gpointer data)
     // Create gauge if nonexistent
     if (nullptr == gauge_)
     {
-        LOG_I("%s/%s: Set up new Gauge", __FILE__, __FUNCTION__);
+        LOG_I("⏳ Setting up new Gauge ...");
         assert(nullptr != param_handler_);
         gauge_ = new Gauge(
             gray_mat_,
@@ -125,7 +132,7 @@ static gboolean imageanalysis(gpointer data)
     assert(value <= 100.0);
     if (0 > value)
     {
-        LOG_E("%s/%s: Failed to read out Gauge value from current scene/setup", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: Failed to read out Gauge value from current scene/setup", __FILE__, __func__);
     }
     else
     {
@@ -137,12 +144,12 @@ static gboolean imageanalysis(gpointer data)
             const double factor = pow(10.0, rounddecimals);
             value = round(value * factor) / factor;
             value_str = std::format("{:.{}f}", value, rounddecimals);
-            LOG_I("%s/%s: Value (with %i decimals) was %s", __FILE__, __FUNCTION__, rounddecimals, value_str.c_str());
+            LOG_I("✅ %s value (with %i decimals) was %s", __func__, rounddecimals, value_str.c_str());
         }
         else
         {
             value_str = std::to_string(value);
-            LOG_I("%s/%s: Value (with unlimited decimals) was %s", __FILE__, __FUNCTION__, value_str.c_str());
+            LOG_I("✅ %s value (with unlimited decimals) was %s", __func__, value_str.c_str());
         }
         opcuaserver_.UpdateGaugeValue(value);
         if (value != lastvalue_)
@@ -160,6 +167,12 @@ static gboolean imageanalysis(gpointer data)
     // Release the VDO frame buffer
     provider_->ReturnFrame(*buf);
 
+    if (shutdown_requested_)
+    {
+        g_main_loop_quit(loop_);
+        return FALSE;
+    }
+
     return TRUE;
 }
 
@@ -175,23 +188,23 @@ static gboolean initimageanalysis(void)
     unsigned int streamHeight = 0;
     if (!ImageProvider::ChooseStreamResolution(width, height, streamWidth, streamHeight))
     {
-        LOG_E("%s/%s: Failed choosing stream resolution", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: Failed choosing stream resolution", __FILE__, __func__);
         return FALSE;
     }
 
-    LOG_I("Creating VDO image provider and creating stream %d x %d", streamWidth, streamHeight);
+    LOG_I("⏳ Creating VDO image provider and creating stream %d x %d ...", streamWidth, streamHeight);
     // TODO: Could we use the subformat Y800 to get gray 1-channel image directly?
     provider_ = new ImageProvider(streamWidth, streamHeight, 2, VDO_FORMAT_YUV);
     if (!provider_)
     {
-        LOG_E("%s/%s: Failed to create ImageProvider", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: Failed to create ImageProvider", __FILE__, __func__);
         return FALSE;
     }
 
-    LOG_I("Start fetching video frames from VDO");
+    LOG_I("⏳ Start fetching video frames from VDO ...");
     if (!ImageProvider::StartFrameFetch(*provider_))
     {
-        LOG_E("%s/%s: Failed to fetch frames from VDO", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: Failed to fetch frames from VDO", __FILE__, __func__);
         return FALSE;
     }
 
@@ -209,11 +222,7 @@ static void signalHandler(int signal_num)
     case SIGTERM:
     case SIGABRT:
     case SIGINT:
-        if (nullptr != provider_)
-        {
-            ImageProvider::StopFrameFetch(*provider_);
-        }
-        g_main_loop_quit(loop_);
+        shutdown_requested_ = 1;
         break;
     default:
         break;
@@ -262,11 +271,11 @@ int main(int argc, char *argv[])
     dynstr_handler_ = new DynamicStringHandler();
 
     // Init parameter handling (will also launch OPC UA server)
-    LOG_I("Init parameter handling and launch OPC UA server ...");
+    LOG_I("⏳ Init parameter handling and launch OPC UA server ...");
     param_handler_ = new ParamHandler(app_name, restart_opcuaserver, replace_gauge, set_dynstr_nbr);
     if (nullptr == param_handler_)
     {
-        LOG_E("%s/%s: Failed to set up parameter handler and launch OPC UA server", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: Failed to set up parameter handler and launch OPC UA server", __FILE__, __func__);
         result = EXIT_FAILURE;
         goto exit;
     }
@@ -274,7 +283,7 @@ int main(int argc, char *argv[])
     // Initialize image analysis
     if (!initimageanalysis())
     {
-        LOG_E("%s/%s: Failed to init image analysis", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: Failed to init image analysis", __FILE__, __func__);
         result = EXIT_FAILURE;
         goto exit_param;
     }
@@ -282,22 +291,24 @@ int main(int argc, char *argv[])
     // Add image analysis as idle function
     if (1 > g_idle_add(imageanalysis, nullptr))
     {
-        LOG_E("%s/%s: Failed to add idle function", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: Failed to add idle function", __FILE__, __func__);
         result = EXIT_FAILURE;
         goto exit_param;
     }
 
-    LOG_I("Start main loop ...");
+    LOG_I("⏳ Start main loop ...");
     assert(nullptr == loop_);
     loop_ = g_main_loop_new(nullptr, FALSE);
     g_main_loop_run(loop_);
 
     // Cleanup
-    LOG_I("Shutdown ...");
+    LOG_I("⏳ Shutdown ...");
     g_main_loop_unref(loop_);
     if (nullptr != provider_)
     {
+        ImageProvider::StopFrameFetch(*provider_);
         delete provider_;
+        provider_ = nullptr;
     }
 
 exit_param:
@@ -306,8 +317,8 @@ exit_param:
 
 exit:
     delete dynstr_handler_;
-    LOG_I("Exiting!");
     evpusher_.reset();
+    LOG_I("✅ Exiting!");
     closelog();
 
     return result;
