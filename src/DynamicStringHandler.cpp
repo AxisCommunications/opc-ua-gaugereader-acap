@@ -55,7 +55,7 @@ DynamicStringHandler::DynamicStringHandler(const guint8 nbr)
          CURLE_OK == curl_easy_setopt(curl_, CURLOPT_WRITEFUNCTION, append_to_string_callback));
 
     assert(curl_init);
-    LOG_I("%s/%s: Dynamic string handler constructor is done!", __FILE__, __FUNCTION__);
+    LOG_I("✅ Dynamic string handler ready");
 }
 
 DynamicStringHandler::~DynamicStringHandler()
@@ -69,7 +69,7 @@ void DynamicStringHandler::SetStrNumber(const guint8 newnbr)
 {
     lock_guard<mutex> lock(mtx_);
     nbr_ = newnbr;
-    LOG_I("Now using dynamic string number %u", newnbr);
+    LOG_I("✅ Now using dynamic string number %u", newnbr);
 }
 
 void DynamicStringHandler::UpdateStr(const std::string &value_str)
@@ -86,14 +86,14 @@ void DynamicStringHandler::UpdateStr(const std::string &value_str)
     const auto escaped_value = curl_easy_escape(curl_, value_str.c_str(), 0);
     if (nullptr == escaped_value)
     {
-        LOG_E("%s/%s: Failed to escape dynamic string", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: Failed to escape dynamic string", __FILE__, __func__);
         return;
     }
     const auto url = "http://127.0.0.12/axis-cgi/dynamicoverlay.cgi?action=settext&text_index=" + to_string(nbr_) +
                      "&text=" + escaped_value;
     if (!VapixGet(url))
     {
-        LOG_E("%s/%s: Failed to update dynamic string", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: Failed to update dynamic string", __FILE__, __func__);
     }
     curl_free(escaped_value);
     lastupdate_ = nowtime;
@@ -154,14 +154,14 @@ gboolean DynamicStringHandler::VapixGet(const string &url)
     if (CURLE_OK != curl_easy_setopt(curl_, CURLOPT_URL, url.c_str()) ||
         CURLE_OK != curl_easy_setopt(curl_, CURLOPT_WRITEDATA, &response))
     {
-        LOG_E("%s/%s: Failed to set up cURL options", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: Failed to set up cURL options", __FILE__, __func__);
         return FALSE;
     }
 
     const auto res = curl_easy_perform(curl_);
     if (res != CURLE_OK)
     {
-        LOG_E("%s/%s: curl fail %d '%s''", __FILE__, __FUNCTION__, res, curl_easy_strerror(res));
+        LOG_E("%s/%s: curl fail %d '%s''", __FILE__, __func__, res, curl_easy_strerror(res));
         return FALSE;
     }
 

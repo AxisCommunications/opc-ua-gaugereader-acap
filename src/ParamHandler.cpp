@@ -30,19 +30,19 @@ ParamHandler::ParamHandler(
       axparameter_(nullptr), clockwise_(true), round_to_decimals_(-1), center_point_(0, 0), min_point_(0, 0),
       max_point_(0, 0)
 {
-    LOG_I("Init parameter handling ...");
+    LOG_I("⏳ Init parameter handling ...");
     g_mutex_init(&mtx_);
     GError *error = nullptr;
     axparameter_ = ax_parameter_new(app_name, &error);
     if (nullptr != error)
     {
-        LOG_E("%s/%s: ax_parameter_new failed (%s)", __FILE__, __FUNCTION__, error->message);
+        LOG_E("%s/%s: ax_parameter_new failed (%s)", __FILE__, __func__, error->message);
         g_error_free(error);
         assert(FALSE);
     }
     assert(nullptr != axparameter_);
     // clang-format off
-    LOG_I("Setting up parameters ...");
+    LOG_I("⏳ Setting up parameters ...");
     if (!SetupParam("DynamicStringNumber", ParamCallback) ||
         !SetupParam("centerX", ParamCallback) ||
         !SetupParam("centerY", ParamCallback) ||
@@ -55,14 +55,14 @@ ParamHandler::ParamHandler(
         !SetupParam("RoundToDecimals", ParamCallback))
     // clang-format on
     {
-        LOG_E("%s/%s: Failed to set up parameters", __FILE__, __FUNCTION__);
+        LOG_E("%s/%s: Failed to set up parameters", __FILE__, __func__);
         assert(FALSE);
     }
 
     // Log retrieved param values
-    LOG_I("%s/%s: center: (%u, %u)", __FILE__, __FUNCTION__, center_point_.x, center_point_.y);
-    LOG_I("%s/%s: min: (%u, %u)", __FILE__, __FUNCTION__, min_point_.x, min_point_.y);
-    LOG_I("%s/%s: max: (%u, %u)", __FILE__, __FUNCTION__, max_point_.x, max_point_.y);
+    LOG_I("(%s) center: (%u, %u)", __func__, center_point_.x, center_point_.y);
+    LOG_I("(%s) min: (%u, %u)", __func__, min_point_.x, min_point_.y);
+    LOG_I("(%s) max: (%u, %u)", __func__, max_point_.x, max_point_.y);
 }
 
 ParamHandler::~ParamHandler()
@@ -79,15 +79,15 @@ gchar *ParamHandler::GetParam(const gchar &name) const
     gchar *value = nullptr;
     if (!ax_parameter_get(axparameter_, &name, &value, &error))
     {
-        LOG_E("%s/%s: failed to get %s parameter", __FILE__, __FUNCTION__, &name);
+        LOG_E("%s/%s: failed to get %s parameter", __FILE__, __func__, &name);
         if (nullptr != error)
         {
-            LOG_E("%s/%s: %s", __FILE__, __FUNCTION__, error->message);
+            LOG_E("%s/%s: %s", __FILE__, __func__, error->message);
             g_error_free(error);
         }
         return nullptr;
     }
-    LOG_I("Got %s value: %s", &name, value);
+    LOG_I("✅ Got '%s' value: %s", &name, value);
     return value;
 }
 
@@ -158,7 +158,7 @@ void ParamHandler::UpdateLocalParam(const gchar &name, const gint32 val)
     }
     else
     {
-        LOG_E("%s/%s: FAILED to act on param %s", __FILE__, __FUNCTION__, &name);
+        LOG_E("%s/%s: FAILED to act on param %s", __FILE__, __func__, &name);
         assert(false);
     }
     g_mutex_unlock(&mtx_);
@@ -175,11 +175,11 @@ void ParamHandler::ParamCallback(const gchar *name, const gchar *value, void *da
     auto param_handler = static_cast<ParamHandler *>(data);
     if (nullptr == value)
     {
-        LOG_E("%s/%s: Unexpected nullptr value for %s", __FILE__, __FUNCTION__, name);
+        LOG_E("%s/%s: Unexpected nullptr value for %s", __FILE__, __func__, name);
         return;
     }
 
-    LOG_I("Update for parameter %s (%s)", name, value);
+    LOG_I("✅ Update for parameter %s (%s)", name, value);
     const auto lastdot = strrchr(name, '.');
     assert(nullptr != lastdot);
     assert(1 < strlen(name) - strlen(lastdot));
@@ -196,10 +196,10 @@ gboolean ParamHandler::SetupParam(const gchar *name, AXParameterCallback callbac
 
     if (!ax_parameter_register_callback(axparameter_, name, callbackfn, this, &error))
     {
-        LOG_E("%s/%s: failed to register %s callback", __FILE__, __FUNCTION__, name);
+        LOG_E("%s/%s: failed to register %s callback", __FILE__, __func__, name);
         if (nullptr != error)
         {
-            LOG_E("%s/%s: %s", __FILE__, __FUNCTION__, error->message);
+            LOG_E("%s/%s: %s", __FILE__, __func__, error->message);
             g_error_free(error);
         }
         return FALSE;
@@ -208,11 +208,11 @@ gboolean ParamHandler::SetupParam(const gchar *name, AXParameterCallback callbac
     gint32 val;
     if (!GetParam(*name, val))
     {
-        LOG_E("%s/%s: Failed to get initial value for %s", __FILE__, __FUNCTION__, name);
+        LOG_E("%s/%s: Failed to get initial value for %s", __FILE__, __func__, name);
         return FALSE;
     }
     UpdateLocalParam(*name, val);
-    LOG_I("%s/%s: Set up parameter %s", __FILE__, __FUNCTION__, name);
+    LOG_I("✅ Set up parameter '%s'", name);
     usleep(50000); // mitigate timing issue in parameter handling
 
     return TRUE;
