@@ -144,12 +144,12 @@ static gboolean imageanalysis(gpointer data)
             const double factor = pow(10.0, rounddecimals);
             value = round(value * factor) / factor;
             value_str = std::format("{:.{}f}", value, rounddecimals);
-            LOG_I("✅ %s value (with %i decimals) was %s", __func__, rounddecimals, value_str.c_str());
+            LOG_I("ⓘ %s value (with %i decimals) was %s", __func__, rounddecimals, value_str.c_str());
         }
         else
         {
             value_str = std::to_string(value);
-            LOG_I("✅ %s value (with unlimited decimals) was %s", __func__, value_str.c_str());
+            LOG_I("ⓘ %s value (with unlimited decimals) was %s", __func__, value_str.c_str());
         }
         opcuaserver_.UpdateGaugeValue(value);
         if (value != lastvalue_)
@@ -302,7 +302,7 @@ int main(int argc, char *argv[])
     g_main_loop_run(loop_);
 
     // Cleanup
-    LOG_I("⏳ Shutdown ...");
+    LOG_I("🧹 Shutdown ...");
     g_main_loop_unref(loop_);
     if (nullptr != provider_)
     {

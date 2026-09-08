@@ -86,7 +86,7 @@ void OpcUaServer::ShutDownServer()
         running_ = false;
     }
 
-    LOG_I("⏳ Shutting down UA server ...");
+    LOG_I("🧹 Request OPC UA server thread stop ...");
     if (serverthread->joinable())
     {
         serverthread->join();
@@ -184,7 +184,7 @@ void OpcUaServer::RunUaServer(OpcUaServer *parent)
     {
         status = UA_Server_run_shutdown(parent->server_);
     }
-    LOG_I("UA Server exit status: %s", UA_StatusCode_name(status));
+    LOG_I("🚪 UA Server exit status is '%s'", UA_StatusCode_name(status));
 
     lock_guard<mutex> lock(parent->mtx_);
     parent->running_ = false;
