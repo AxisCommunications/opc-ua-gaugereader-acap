@@ -39,7 +39,7 @@ class OpcUaServer
     void WriteGaugeValue(double value);
     static void RunUaServer(OpcUaServer *parent);
     std::thread *serverthread_;
-    std::atomic_bool running_;
+    UA_Boolean running_;
     UA_Server *server_;
     double gauge_value_;
     bool gauge_value_pending_;
