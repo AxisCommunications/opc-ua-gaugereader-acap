@@ -31,7 +31,6 @@ ParamHandler::ParamHandler(
       max_point_(0, 0)
 {
     LOG_I("⏳ Init parameter handling ...");
-    g_mutex_init(&mtx_);
     GError *error = nullptr;
     axparameter_ = ax_parameter_new(app_name, &error);
     if (nullptr != error)
@@ -69,7 +68,6 @@ ParamHandler::~ParamHandler()
 {
     assert(nullptr != axparameter_);
     ax_parameter_free(axparameter_);
-    g_mutex_clear(&mtx_);
 }
 
 gchar *ParamHandler::GetParam(const gchar &name) const
@@ -120,14 +118,13 @@ void ParamHandler::UpdateLocalParam(const gchar &name, const gint32 val)
     }
     else if (0 == g_strcmp0(&name, "RoundToDecimals"))
     {
-        g_mutex_lock(&mtx_);
+        const std::lock_guard<std::mutex> lock(mtx_);
         round_to_decimals_ = static_cast<gint8>(val);
-        g_mutex_unlock(&mtx_);
         return;
     }
 
     // The following parameters trigger recalibration of the Gauge
-    g_mutex_lock(&mtx_);
+    const std::lock_guard<std::mutex> lock(mtx_);
     if (0 == g_strcmp0(&name, "clockwise"))
     {
         clockwise_ = (1 == val);
@@ -161,7 +158,6 @@ void ParamHandler::UpdateLocalParam(const gchar &name, const gint32 val)
         LOG_E("%s/%s: FAILED to act on param %s", __FILE__, __func__, &name);
         assert(false);
     }
-    g_mutex_unlock(&mtx_);
 
     // Recalibrate gauge at next frame
     assert(nullptr != ReplaceGauge_);
